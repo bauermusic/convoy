@@ -4,7 +4,30 @@
     ".write": false,
     "sessions": {
       ".read": "auth != null",
-      ".write": "auth != null"
+      "$sid": {
+        "host": {
+          ".write": "auth != null && (!data.exists() || data.child('uid').val() === auth.uid)",
+          ".validate": "newData.child('uid').val() === auth.uid"
+        },
+        "roles": {
+          "$role": {
+            ".write": "auth != null && (!data.exists() || data.child('uid').val() === auth.uid)",
+            ".validate": "($role === 'lead' || $role === 'mid' || $role === 'tail') && newData.child('uid').val() === auth.uid && newData.child('claimedAt').isNumber()"
+          }
+        },
+        "cars": {
+          "$role": {
+            ".write": "auth != null",
+            ".validate": "($role === 'lead' || $role === 'mid' || $role === 'tail') && newData.hasChildren(['s', 'v', 'status', 'npc', 't'])",
+            "s": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000" },
+            "v": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100" },
+            "status": { ".validate": "newData.val() === 'driving' || newData.val() === 'stopped'" },
+            "npc": { ".validate": "newData.isBoolean()" },
+            "t": { ".validate": "newData.isNumber() && newData.val() <= now" },
+            "$other": { ".validate": false }
+          }
+        }
+      }
     }
   }
 }

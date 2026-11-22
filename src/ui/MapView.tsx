@@ -1,5 +1,5 @@
 // Plain Leaflet driven through a ref (no react-leaflet): React owns the <div>, Leaflet owns
-// everything inside it. The map is created once; later renders only move the markers.
+// everything inside it. The map is created once; later renders only update the markers.
 import { useEffect, useRef } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -7,11 +7,24 @@ import { ROLES, type LatLng, type Role } from '../domain/types'
 
 const LETTER: Record<Role, string> = { lead: 'L', mid: 'M', tail: 'T' }
 
+export interface MapCar extends LatLng {
+  stale: boolean
+}
+
 interface Props {
   route: LatLng[]
-  cars: Record<Role, LatLng>
+  /** Cars to draw. A missing role has no marker yet. */
+  cars: Partial<Record<Role, MapCar>>
   /** The car this tab drives: ringed, drawn on top, and followed by the map. */
-  you: Role
+  you: Role | null
+}
+
+function icon(role: Role, isYou: boolean) {
+  return L.divIcon({
+    className: `car car-${role}${isYou ? ' you' : ''}`,
+    html: isYou ? 'YOU' : LETTER[role],
+    iconSize: isYou ? [44, 44] : [32, 32],
+  })
 }
 
 export function MapView({ route, cars, you }: Props) {
@@ -19,9 +32,9 @@ export function MapView({ route, cars, you }: Props) {
   const map = useRef<L.Map | null>(null)
   const markers = useRef<Partial<Record<Role, L.Marker>>>({})
 
-  // Create the map once. Initial props are enough: the effect below keeps markers current.
+  // Create the map, the route line and one (hidden) marker per role, once.
   useEffect(() => {
-    const m = L.map(container.current!, { zoomControl: false }).setView(cars[you], 15)
+    const m = L.map(container.current!, { zoomControl: false }).setView(route[0], 15)
     // Standard OpenStreetMap tiles: free and keyless. They are light, so styles.css darkens
     // them with a CSS filter (CARTO's dark tiles now require an API key; see DECISIONS.md).
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -30,15 +43,7 @@ export function MapView({ route, cars, you }: Props) {
       maxZoom: 19,
     }).addTo(m)
     L.polyline(route, { className: 'route-line' }).addTo(m)
-
-    for (const role of ROLES) {
-      const icon = L.divIcon({
-        className: `car car-${role}${role === you ? ' you' : ''}`,
-        html: role === you ? 'YOU' : LETTER[role],
-        iconSize: role === you ? [44, 44] : [32, 32],
-      })
-      markers.current[role] = L.marker(cars[role], { icon, zIndexOffset: role === you ? 1000 : 0 }).addTo(m)
-    }
+    for (const role of ROLES) markers.current[role] = L.marker(route[0], { icon: icon(role, false), opacity: 0 }).addTo(m)
     map.current = m
 
     // React StrictMode mounts twice in dev; removing the map lets the second mount start clean.
@@ -47,12 +52,26 @@ export function MapView({ route, cars, you }: Props) {
       map.current = null
       markers.current = {}
     }
-  }, [])
+  }, [route])
 
-  // Every render: move the markers and keep the local car centred.
+  // The local role is only known after joining, so restyle the markers when it changes.
   useEffect(() => {
-    for (const role of ROLES) markers.current[role]?.setLatLng(cars[role])
-    map.current?.panTo(cars[you], { animate: false })
+    for (const role of ROLES) {
+      markers.current[role]?.setIcon(icon(role, role === you)).setZIndexOffset(role === you ? 1000 : 0)
+    }
+  }, [you])
+
+  // Every render: move the markers, dim lost cars, and keep the followed car centred.
+  useEffect(() => {
+    for (const role of ROLES) {
+      const car = cars[role]
+      const marker = markers.current[role]
+      if (!marker) continue
+      if (car) marker.setLatLng(car)
+      marker.setOpacity(!car ? 0 : car.stale ? 0.35 : 1)
+    }
+    const follow = cars[you ?? 'lead']
+    if (follow) map.current?.panTo(follow, { animate: false })
   })
 
   return <div ref={container} className="map" />

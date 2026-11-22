@@ -118,3 +118,30 @@ body {
   outline: 3px solid var(--text);
   outline-offset: 3px;
 }
+
+.readout tr.stale {
+  opacity: 0.45;
+}
+
+.readout .tag {
+  font-size: 0.9rem;
+  color: var(--warning);
+}
+
+/* Debug overlay (?debug=1): small, bottom-left over the map. */
+.debug {
+  position: fixed;
+  left: 0.75rem;
+  bottom: 1.75rem;
+  z-index: 1000;
+  padding: 0.6rem 0.8rem;
+  background: rgb(11 13 16 / 0.85);
+  border: 1px solid var(--muted);
+  border-radius: 6px;
+  font: 12px/1.5 ui-monospace, monospace;
+}
+
+.debug button {
+  margin-top: 0.4rem;
+  font: inherit;
+}

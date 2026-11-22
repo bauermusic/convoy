@@ -21,3 +21,10 @@ export interface LatLng {
   lat: number
   lng: number
 }
+
+/** One car as published to the Realtime Database. `t` is the server time of the write, ms. */
+export interface CarSample extends CarState {
+  /** true when the session host drives this car because no human holds the role. */
+  npc: boolean
+  t: number
+}
