@@ -3,9 +3,11 @@
 import { useState } from 'react'
 import { ROLES, type Role } from '../domain/types'
 import { resetSession, setTailLag } from '../firebase/meta'
+import { releaseSilentSeats } from '../firebase/session'
 
 interface Props {
   sid: string
+  uid: string | null
   tailLag: number
   role: Role | null
   debug: boolean
@@ -19,7 +21,7 @@ function linkWith(key: string, value: string | null) {
   return `?${params}`
 }
 
-export function DemoControls({ sid, tailLag, role, debug }: Props) {
+export function DemoControls({ sid, uid, tailLag, role, debug }: Props) {
   const [open, setOpen] = useState(debug)
 
   return (
@@ -51,7 +53,14 @@ export function DemoControls({ sid, tailLag, role, debug }: Props) {
           <div className="demo-row">
             <a href={linkWith('debug', debug ? null : '1')}>{debug ? 'Hide' : 'Show'} debug overlay</a>
           </div>
-          <button onClick={() => resetSession(sid)}>Reset session</button>
+          <button
+            onClick={() => {
+              resetSession(sid)
+              if (uid) releaseSilentSeats(sid, uid) // also free seats held by frozen tabs
+            }}
+          >
+            Reset session
+          </button>
         </div>
       )}
     </div>

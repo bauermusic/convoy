@@ -1,10 +1,29 @@
 // Joins a session: signs in, claims a role, keeps track of who holds which role and who is
 // host. Every time the connection comes (back) up we claim again, because the server ran
 // our onDisconnect handlers when the connection dropped and the role may be free now.
+//
+// Every 3 s (on the background-safe timer):
+//   - the host refreshes its heartbeat and frees seats whose holder went silent (see session.ts),
+//     so their cars become NPCs again instead of "lost contact" forever;
+//   - other tabs take over a silent host;
+//   - a tab without a seat ("watching only") tries again.
+// A frozen tab that wakes up and finds its seat taken steps down and looks for another one.
 import { useEffect, useState } from 'react'
 import type { Role } from '../domain/types'
 import { signIn } from '../firebase/client'
-import { claimHost, claimRole, watchConnected, watchHost, watchRoles } from '../firebase/session'
+import {
+  HOST_BEAT_MS,
+  beatHost,
+  claimHost,
+  claimRole,
+  isHostSilent,
+  releaseSilentSeats,
+  watchConnected,
+  watchHost,
+  watchRoles,
+  type Host,
+} from '../firebase/session'
+import { backgroundInterval } from './backgroundInterval'
 
 export interface Session {
   uid: string | null
@@ -34,24 +53,55 @@ export function useSession(sid: string, wantedRole: Role): Session {
         console.log('[convoy] signed in as', uid)
         update({ uid })
         let held: Role | null = null
+        let claiming = false
+        let connected = false
+        let host: Host | null = null
+
+        // One claim at a time, so a tab can never end up holding two seats.
+        const tryClaim = () => {
+          if (claiming || !connected) return
+          claiming = true
+          claimRole(sid, uid, held ?? wantedRole)
+            .then((role) => {
+              held = role
+              update({ role })
+            })
+            .catch(fail)
+            .finally(() => (claiming = false))
+        }
 
         unsubscribes.push(
-          watchConnected((connected) => {
-            update({ connected })
+          watchConnected((now) => {
+            connected = now
+            update({ connected: now })
+            if (now) tryClaim()
+          }),
+          watchRoles(sid, (humans) => {
+            update({ humans })
+            if (!held || claiming) return
+            if (!humans[held]) {
+              tryClaim() // our seat was freed (e.g. by onDisconnect): take it back
+            } else if (humans[held] !== uid) {
+              held = null // taken over while we were frozen: step down and look again
+              update({ role: null })
+              tryClaim()
+            }
+          }),
+          watchHost(sid, (next) => {
+            host = next
+            update({ isHost: next?.uid === uid })
+            if (!next) claimHost(sid, uid).catch(fail) // nobody is host: try to take over
+          }),
+          backgroundInterval(() => {
             if (!connected) return
-            claimRole(sid, uid, held ?? wantedRole)
-              .then((role) => {
-                held = role
-                update({ role })
-              })
-              .catch(fail)
-          }),
-          watchRoles(sid, (humans) => update({ humans })),
-          watchHost(sid, (hostUid) => {
-            update({ isHost: hostUid === uid })
-            // Nobody is host (first tab, or the host left): try to take over.
-            if (hostUid === null) claimHost(sid, uid).catch(fail)
-          }),
+            if (host?.uid === uid) {
+              beatHost(sid).catch(() => {})
+              releaseSilentSeats(sid, uid)
+            } else if (!host || isHostSilent(host)) {
+              claimHost(sid, uid).catch(fail)
+            }
+            if (!held) tryClaim()
+          }, HOST_BEAT_MS),
         )
       })
       .catch(fail)

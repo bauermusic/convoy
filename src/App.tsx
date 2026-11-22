@@ -43,11 +43,11 @@ export function App() {
       <AlertBanner split={convoy.split} alerts={alerts} />
       <div className="map-area">
         <MapView route={ROUTE.points} cars={mapCars} you={role} talking={ptt.talking} />
-        <DemoControls sid={sid} tailLag={convoy.tailLag} role={role} debug={debug} />
+        <DemoControls sid={sid} uid={session.uid} tailLag={convoy.tailLag} role={role} debug={debug} />
         {debug && <DebugOverlay session={session} />}
       </div>
       <aside className="panel">
-        <Hud session={session} sid={sid} you={you} lost={ROLES.filter((r) => cars[r]?.stale)} />
+        <Hud session={session} sid={sid} wanted={wantedRole} you={you} lost={ROLES.filter((r) => cars[r]?.stale)} />
         <ConvoyStrip cars={cars} gaps={convoy.gaps} split={convoy.split} you={role} />
         <div className="controls">
           {role &&

@@ -31,6 +31,7 @@ Total active time so far: 0h
 ## To do at the end (agreed to defer)
 
 - Done: car-following fix (mid no longer passes the lead). Verified locally: lead pulls over → mid stops 50 m behind, tail 50 m behind mid; RESUME → they drive on in order. **Not deployed yet.**
+- Done: silent seat holders ("ghosts"). Seen live: all seats held by suspended/frozen tabs, new visitor got "watching only". Now seats are taken over after 15 s of silence, host after 10 s; the host frees silent seats; seatless tabs retry; woken ghosts step down; Reset frees silent seats; the status line says when you got another seat. Verified locally with fake ghosts in `qa12`. Rules deployed (backward compatible with the live code). **Hosting not deployed yet.**
 
 ## Known issues / notes for the next session
 

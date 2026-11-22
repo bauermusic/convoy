@@ -22,7 +22,7 @@ A single tab also works: the tab that is "host" drives every empty seat as a sim
 | Look around the map | Drag the map: following stops and a re-centre button appears. It also re-centres by itself after 15 s. Zooming keeps your car in the middle. |
 | Start over | Gear → **Reset session** puts every car back at the start in all tabs. |
 
-URL parameters: `role=lead|mid|tail` (default `mid`), `sid=<name>` for a separate session (default `demo`), `debug=1` for the debug overlay.
+URL parameters: `role=lead|mid|tail` (default `mid`; if that seat is taken you get the next free one, and the status line says so), `sid=<name>` for a separate session (default `demo`), `debug=1` for the debug overlay.
 
 ## Run locally
 
@@ -82,15 +82,15 @@ flowchart LR
 
 | Path | Content | Notes |
 |---|---|---|
-| `roles/{role}` | `{ uid, claimedAt }` | A human holds this car. Claimed by transaction, removed by `onDisconnect`. |
-| `host` | `{ uid }` | The tab that drives empty seats as NPCs. Same claim pattern. |
+| `roles/{role}` | `{ uid, claimedAt }` | A human holds this car. Claimed by transaction, removed by `onDisconnect`, taken over if its car is silent for 15 s. |
+| `host` | `{ uid, t }` | The tab that drives empty seats as NPCs. Same claim pattern; `t` is a heartbeat every 3 s, taken over after 10 s of silence. |
 | `cars/{role}` | `{ s, v, status, npc, t }` | `s` = metres along the road, `v` = m/s, `t` = server timestamp. |
 | `ptt` | `{ role, uid, startedAt }` | The push-to-talk channel. Empty = free. |
 | `alerts/{id}` | `{ type, role, t }` | `pullover` / `resume`. Append-only. |
 | `clips/{id}` | `{ role, uid, mime, b64, t }` | Voice messages (base64 audio, about 43 KB for 8 s). Deleted after 30 s. |
 | `meta` | `{ tailLag, resetAt }` | Shared demo settings (lag slider, reset). |
 
-Rules ([database.rules.json](database.rules.json)): signed-in users only. `roles`, `host` and `ptt` can only be changed by their holder (or once the talk floor expires). Car samples are type- and range-checked.
+Rules ([database.rules.json](database.rules.json)): signed-in users only. `roles`, `host` and `ptt` can only be changed by their holder, or once the holder has gone silent (seats 15 s, host 10 s, talk floor 30 s). Car samples are type- and range-checked.
 
 ### One telemetry update
 
@@ -160,7 +160,7 @@ Each has a short entry in [DECISIONS.md](DECISIONS.md) (context, decision, why, 
 - **A frozen car is passed.** Cars keep 50 m behind the car ahead and queue behind a stopped one, but a car that lost contact (e.g. its phone went to sleep) is ignored, so the others drive past it rather than stopping behind a frozen marker.
 - **Phones that sleep stop driving.** iOS pauses the page when the screen locks or another app is opened; that car shows "lost contact". The screen is kept awake (Wake Lock) where supported.
 - **Clients are trusted.** Any signed-in user can write any car's telemetry (the host must write NPC cars). There is no per-session membership or rate limiting.
-- **Stuck roles.** If a tab's disconnect is never detected, its seat stays taken. Reset doesn't release seats; deleting `sessions/<sid>/roles/<role>` does.
+- **Seats of frozen tabs are freed after 15 s, not instantly.** A locked phone or frozen tab keeps its connection open, so its seat is only taken over once its car has been silent for 15 s (host: 10 s). Until then that car shows "lost contact".
 - **Single session at a time per URL**, a fixed route, and simulated positions only (no GPS).
 - **Tests cover domain logic only**: route, simulation and car-following, dead reckoning, convoy gaps/split, floor control (29 tests). Realtime behaviour was verified by hand in two tabs and on a phone; there are no end-to-end tests.
 

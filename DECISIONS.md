@@ -22,9 +22,15 @@ Every shortcut, mock, deliberate omission and non-obvious choice, with what two 
 - Why: the default persistence shares one uid across all tabs of a browser, so two tabs could both "own" the same car. Signing in twice on one page (React StrictMode runs effects twice in dev) switched the database auth to a second user and made the rules refuse our claims. Both were seen in testing.
 - With two weeks: real accounts. Anonymous users pile up, so enable automatic cleanup of anonymous accounts in the console.
 
+### Silent seat holders: takeover after 15 s, host after 10 s
+- Context: in device testing all three seats ended up held by tabs that had stopped running (a locked iPhone, a frozen tab). They kept their connections open, so `onDisconnect` never fired; a new visitor got "watching only" and saw every car as "lost contact". Reset couldn't help, because the rules only let a holder remove its own seat.
+- Decision: a seat may be taken over when neither its claim nor its car has been updated for 15 s; the host may be taken over when its heartbeat (refreshed every 3 s) is older than 10 s. The claim transactions and the database rules enforce the same limits. Every 3 s the host frees silent seats (so their cars become NPCs again), other tabs take over a silent host, and a seatless tab retries. A tab that wakes up and finds its seat taken steps down and looks for another one. Reset also frees silent seats. The status line says when you got a different seat than the one in the URL.
+- Why: phones lock and browsers freeze tabs all the time; a demo link used by reviewers over several days must recover on its own. Verified with fake ghost holders in a test session: takeover, NPC driving, step-down and reset all worked.
+- With two weeks: real accounts (a returning driver gets their seat back), and a server that tracks presence instead of each client.
+
 ### Security rules scope
 - Context: SPEC section 3 asks for typed rules.
-- Decision: signed-in users can read `/sessions`. `host` and `roles/{role}` can only be written when empty or held by the same uid. `cars/{role}` is validated (s 0..1e6, v 0..100, status enum, `t <= now`, no extra fields), but any signed-in user may write any car, because the host writes NPC cars. `ptt` can only be changed by its holder or once expired (30 s); `alerts` are append-only and typed; `meta` is range-checked.
+- Decision: signed-in users can read `/sessions`. `host` and `roles/{role}` can only be written when empty or held by the same uid. `cars/{role}` is validated (s 0..1e6, v 0..100, status enum, `t <= now`, no extra fields), but any signed-in user may write any car, because the host writes NPC cars. `roles` and `host` can also be taken over once their holder is silent (15 s / 10 s); `ptt` can only be changed by its holder or once expired (30 s); `alerts` are append-only and typed; `meta` is range-checked.
 - Why: enough to stop accidental clobbering and bad data in a demo.
 - With two weeks: per-session membership, only the role holder or the host may write a car, and rate limiting.
 
