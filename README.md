@@ -19,6 +19,7 @@ A single tab also works: the tab that is "host" drives every empty seat as a sim
 | Pull over / breakdown | **Hold** the PULL OVER button for 0.6 s. Every tab shows "LEAD: PULLING OVER" and your car stops. Tap RESUME to drive on. |
 | Push-to-talk | **Hold** the talk button (or the Space bar on desktop). Others see "LEAD TALKING", a waveform and a green ring on your car, and hear a short tone. A second talker is refused while the channel is busy. |
 | Lost contact | Add `&debug=1` to the URL and press **Simulate network drop**: after 3 s the other cars dim and show "lost contact"; the host takes over your car until you reconnect. |
+| Look around the map | Drag the map: following stops and a re-centre button appears. It also re-centres by itself after 15 s. Zooming keeps your car in the middle. |
 | Start over | Gear → **Reset session** puts every car back at the start in all tabs. |
 
 URL parameters: `role=lead|mid|tail` (default `mid`), `sid=<name>` for a separate session (default `demo`), `debug=1` for the debug overlay.
@@ -117,7 +118,7 @@ src/
   ui/         MapView (Leaflet via a ref), Hud, ConvoyStrip, PttButton, Waveform, HoldButton, AlertBanner, DemoControls, DebugOverlay
 ```
 
-About 1,550 lines of TypeScript excluding tests and route data. That's a little over the 1,500 the plan aimed for, mainly comments explaining non-obvious choices.
+About 1,550 lines of TypeScript excluding tests and route data.
 
 ## Requirements status
 

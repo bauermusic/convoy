@@ -54,6 +54,12 @@ Every shortcut, mock, deliberate omission and non-obvious choice, with what two 
 - Why: no API key, billing account or usage quota, which suits a public demo link. Leaflet is small, and the map only needs a polyline and three markers. Driving it through a ref keeps React out of the map's way: the map is created once and markers are moved each tick.
 - With two weeks: a vector map (MapLibre or Mapbox GL) with a proper dark style, 3D terrain on mountain roads, and heading-up rotation.
 
+### Map follow mode: drag to look around, auto-resume after 15 s
+- Context: the map re-centred on your car every 100 ms, which fought the user's drags and zooms (reported as "bumpy" in testing).
+- Decision: a drag turns following off and shows a re-centre button; following resumes on a tap, or by itself after 15 s without touching the map. Zoom (wheel, pinch, double-tap) always happens around the map centre, which is your car, and re-centring pauses during a zoom and for 1 s after it. Offsets above 12 px glide back (30% per tick) instead of jumping.
+- Why: this is how car navigation apps behave, and a driver shouldn't need to find a button to get the map back. Measured after the change: a zoom moves the car at most 10 px per frame, and a re-centre tap glides from 275 px to centred in about 1 s.
+- With two weeks: heading-up rotation and zoom that adapts to speed.
+
 ### Map tiles: OpenStreetMap with a CSS dark filter instead of CARTO dark
 - Context: SPEC section 1 chose CARTO dark tiles because they needed no API key.
 - Decision: CARTO now serves "API KEY REQUIRED" watermarked tiles (seen 2026-11-22). The map uses standard OSM tiles darkened with `filter: grayscale invert`. Esri's dark basemap was also checked; it has almost no road detail in this area. The filter is applied to each tile, with a matching map background, which hides the hairline seams between tiles.

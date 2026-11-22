@@ -1,11 +1,20 @@
 // Plain Leaflet driven through a ref (no react-leaflet): React owns the <div>, Leaflet owns
 // everything inside it. The map is created once; later renders only update the markers.
-import { useEffect, useRef } from 'react'
+//
+// Follow mode, like a car navigation app: the map keeps your car centred until you drag it.
+// Then a re-centre button appears, and following resumes by itself after 15 s without touching
+// the map. Zooming always happens around the centre (your car) and pauses following until
+// 1 s after the zoom ends, so the zoom animation and the re-centring don't fight.
+import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { ROLES, type LatLng, type Role } from '../domain/types'
 
 import { LETTER } from './format'
+
+const RESUME_AFTER_MS = 15_000
+const ZOOM_SETTLE_MS = 1_000
+const CATCH_UP_PX = 12 // offsets above this glide back instead of jumping
 
 export interface MapCar extends LatLng {
   stale: boolean
@@ -33,10 +42,19 @@ export function MapView({ route, cars, you, talking }: Props) {
   const container = useRef<HTMLDivElement>(null)
   const map = useRef<L.Map | null>(null)
   const markers = useRef<Partial<Record<Role, L.Marker>>>({})
+  const [following, setFollowing] = useState(true)
+  const [lastTouch, setLastTouch] = useState(0) // restarts the auto-resume countdown
+  const zoomBusyUntil = useRef(0) // no re-centring before this time (during and just after a zoom)
 
   // Create the map, the route line and one (hidden) marker per role, once.
   useEffect(() => {
-    const m = L.map(container.current!, { zoomControl: false }).setView(route[0], 15)
+    const m = L.map(container.current!, {
+      zoomControl: false,
+      // Zoom around the map centre (the followed car) instead of the cursor or pinch point.
+      scrollWheelZoom: 'center',
+      touchZoom: 'center',
+      doubleClickZoom: 'center',
+    }).setView(route[0], 15)
     // Standard OpenStreetMap tiles: free and keyless. They are light, so styles.css darkens
     // them with a CSS filter (CARTO's dark tiles now require an API key; see DECISIONS.md).
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -47,6 +65,15 @@ export function MapView({ route, cars, you, talking }: Props) {
     L.polyline(route, { className: 'route-line' }).addTo(m)
     for (const role of ROLES) markers.current[role] = L.marker(route[0], { icon: icon(role, false), opacity: 0 }).addTo(m)
     map.current = m
+
+    // dragstart only fires for the user's own drags, never for our panBy() calls.
+    m.on('dragstart', () => setFollowing(false))
+    m.on('dragend', () => setLastTouch(Date.now()))
+    m.on('zoomstart', () => (zoomBusyUntil.current = Infinity))
+    m.on('zoomend', () => {
+      zoomBusyUntil.current = performance.now() + ZOOM_SETTLE_MS
+      setLastTouch(Date.now())
+    })
 
     // Leaflet measures its container once. When a banner appears the map shrinks, so tell
     // Leaflet to re-measure, or tiles would be missing at the edge.
@@ -61,6 +88,13 @@ export function MapView({ route, cars, you, talking }: Props) {
       markers.current = {}
     }
   }, [route])
+
+  // Not following: resume after 15 s without touching the map (each drag or zoom restarts it).
+  useEffect(() => {
+    if (following) return
+    const id = window.setTimeout(() => setFollowing(true), RESUME_AFTER_MS)
+    return () => window.clearTimeout(id)
+  }, [following, lastTouch])
 
   // The local role is only known after joining, so restyle the markers when it changes.
   useEffect(() => {
@@ -83,11 +117,27 @@ export function MapView({ route, cars, you, talking }: Props) {
     // offsets leave hairline seams between tiles.
     const follow = cars[you ?? 'lead']
     const m = map.current
-    if (follow && m) {
-      const offset = m.latLngToContainerPoint(follow).subtract(m.getSize().divideBy(2)).round()
-      if (offset.x || offset.y) m.panBy(offset, { animate: false })
+    if (following && follow && m && performance.now() > zoomBusyUntil.current) {
+      const offset = m.latLngToContainerPoint(follow).subtract(m.getSize().divideBy(2))
+      // Small offsets (normal driving) are corrected at once. Large ones (after a zoom pause or
+      // a re-centre tap) glide back over about a second instead of jumping.
+      const step = (offset.x ** 2 + offset.y ** 2 > CATCH_UP_PX ** 2 ? offset.multiplyBy(0.3) : offset).round()
+      if (step.x || step.y) m.panBy(step, { animate: false })
     }
   })
 
-  return <div ref={container} className="map" />
+  return (
+    <>
+      <div ref={container} className="map" />
+      {!following && (
+        <button className="recenter" aria-label="Re-centre on my car" onClick={() => setFollowing(true)}>
+          <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
+            <circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" strokeWidth="2" />
+            <circle cx="12" cy="12" r="2.5" fill="currentColor" />
+            <path d="M12 1v4M12 19v4M1 12h4M19 12h4" stroke="currentColor" strokeWidth="2" />
+          </svg>
+        </button>
+      )}
+    </>
+  )
 }

@@ -34,6 +34,8 @@ Total active time so far: 0h
 
 ## Known issues / notes for the next session
 
+- Post-phase fix: map follow mode (drag → re-centre button, auto-resume after 15 s, zoom around the car with a 1 s pause, gliding catch-up). Verified in the test browser: no snap-back while dragged, button and auto-resume re-centre exactly, zoom moves the car at most 10 px per frame.
+
 - Phase 2 verified in two tabs (`?sid=qa2`): sync, tail tab closing (host takes it over, no jump), network drop ("lost contact" after 3 s, host takes over, tab reclaims on reconnect), host tab closing (other tab becomes host). Deployed and checked on the live URL.
 - Bugs found and fixed while testing: the cars subscription started before sign-in; a refused claim threw instead of meaning "taken"; double sign-in under StrictMode. See DECISIONS.md "One anonymous user per tab".
 - Database was wiped after Phase 2 testing (it held stuck claims from the double sign-in bug). Test sessions (`qa*`, `parked`) are removed after each phase.
