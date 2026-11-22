@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+*.log
+.DS_Store
+
+# Local env (Firebase web config). Never commit.
+.env.local
+.env.*.local
+
+# Firebase CLI cache
+.firebase/
