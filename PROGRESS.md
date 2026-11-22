@@ -4,8 +4,8 @@ Update this file at the end of every phase and every work session.
 
 ## Status
 
-- Current phase: **Phase 4 — done.** Next: Phase 5 (polish, phone test, final deploy)
-- Last commit: Phase 4 PTT tier 1
+- Current phase: **Phase 5 — done in code and deployed; waiting on the author's phone test (Chrome + Safari).** Next: Phase 6 (README, status table, DECISIONS tidy)
+- Last commit: Phase 5 polish
 
 ## Time log (active work only)
 
@@ -42,8 +42,7 @@ Total active time so far: 0h
 - Phase 4 verified in two tabs (`?sid=qa4`): lead talks → tail sees "LEAD TALKING", disabled button, synthetic waveform, green ring on L; tail's Space press rejected; release → tail can talk (Space shortcut works); closing the talking tab frees the channel in < 2 s; forced release at 30 s.
 - NOT verified yet (the test browser has no mic or speakers): the real mic waveform and hearing the tones. Check on Chrome, and Safari in Phase 5.
 - After a forced release at 30 s, the user must lift and press again to talk.
-- Panel height: speed + strip + pull-over + PTT fit at 768 px tall; a phone in landscape will scroll the panel. Phase 5 layout item.
-- Map tiles show faint seams between tiles (CSS filter on OSM tiles). Polish item for Phase 5.
+- Phase 5 checked in the test browser at 844×390 (phone landscape, with the split banner showing), 390×844 (portrait) and desktop. Both big buttons visible without scrolling.
 - Map tiles switched from CARTO to OSM (CARTO now needs a key). See DECISIONS.md. The README must not say CARTO.
 - Simulated over 2 h: gaps between neighbours stay 57–425 m, no overtaking, average ~53 km/h. A split only happens through the lag slider (Phase 3).
 - Empty `src/audio/` folder holds a `.gitkeep` until Phase 4.

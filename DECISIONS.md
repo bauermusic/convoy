@@ -46,7 +46,7 @@ Running log of choices, shortcuts and deliberate omissions. Format: SPEC section
 
 ### Map tiles: OpenStreetMap with a CSS dark filter instead of CARTO dark
 - Context: SPEC section 1 chose CARTO dark tiles because they needed no API key.
-- Decision: CARTO now serves "API KEY REQUIRED" watermarked tiles (seen 2026-11-22). The map uses standard OSM tiles darkened with `filter: grayscale invert`. Esri's dark basemap was also checked; it has almost no road detail in this area.
+- Decision: CARTO now serves "API KEY REQUIRED" watermarked tiles (seen 2026-11-22). The map uses standard OSM tiles darkened with `filter: grayscale invert`. Esri's dark basemap was also checked; it has almost no road detail in this area. The filter is applied to each tile, with a matching map background, which hides the hairline seams between tiles.
 - Why: no key, no sign-up, full road detail. Fine for a low-traffic demo under the OSM tile usage policy.
 - With two weeks: a proper dark vector style (MapTiler or Stadia with a key, or self-hosted tiles).
 
@@ -157,3 +157,9 @@ Running log of choices, shortcuts and deliberate omissions. Format: SPEC section
 - Decision: the shared AudioContext is resumed on the first tap or key press anywhere. Until then, tones are skipped silently; the visual indicators always work.
 - Why: browsers don't allow working around this.
 - With two weeks: a "tap to enable radio audio" prompt on first load.
+
+### Phone layouts and polish (Phase 5)
+- Context: SPEC section 6 asks for landscape-first, usable in portrait, large targets, contrast of at least 7:1 for primary text.
+- Decision: a compact layout for short landscape screens (phone on the dashboard) puts PULL OVER and TALK side by side, each at least 120 px tall. In portrait the panel takes the height it needs and the map gets the rest. `100dvh`, safe-area insets and no iOS long-press menu on the hold buttons. Contrast checked: primary text 14.8–17.8:1; muted secondary text about 5.3:1 (AA). The split banner was white on red at 3:1 and now uses dark text (5.9:1). Screen Wake Lock where supported. The map follows the car by whole-pixel pans instead of a view reset every 100 ms.
+- Why: a phone in landscape is the likely in-car setup, and both critical buttons must be reachable without scrolling.
+- With two weeks: an accessibility audit (screen reader labels, focus order, reduced motion), and testing on real car displays.

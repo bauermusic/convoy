@@ -56,7 +56,7 @@ export function PttButton({ ptt, canTalk }: { ptt: Ptt; canTalk: boolean }) {
     >
       <Waveform mic={state.kind === 'held' ? ptt.mic : null} active={state.kind !== 'free'} />
       <span className="ptt-label">{label}</span>
-      {hint && <span className="ptt-hint">{hint}</span>}
+      {hint && <span className={`ptt-hint${state.kind === 'free' ? ' keyboard' : ''}`}>{hint}</span>}
     </button>
   )
 }

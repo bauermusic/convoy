@@ -6,6 +6,7 @@ import { useAlerts } from './hooks/useAlerts'
 import { useConvoy } from './hooks/useConvoy'
 import { usePtt } from './hooks/usePtt'
 import { useSession } from './hooks/useSession'
+import { useWakeLock } from './hooks/useWakeLock'
 import { AlertBanner } from './ui/AlertBanner'
 import { ConvoyStrip } from './ui/ConvoyStrip'
 import { DebugOverlay } from './ui/DebugOverlay'
@@ -26,6 +27,7 @@ export function App() {
   const convoy = useConvoy(sid, session)
   const alerts = useAlerts(sid, session.uid !== null)
   const ptt = usePtt(sid, session)
+  useWakeLock()
   const { cars } = convoy
   const role = session.role
   const you = role ? cars[role] : undefined

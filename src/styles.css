@@ -61,15 +61,21 @@ a {
     'map panel' minmax(0, 1fr)
     / 65fr 35fr;
   height: 100%;
+  height: 100dvh; /* the visible height on phones, excluding browser toolbars */
 }
 
+/* Portrait: the panel takes the height it needs (buttons always visible), the map gets the rest. */
 @media (orientation: portrait) {
   .app {
     grid-template:
       'banners' auto
-      'map' minmax(0, 1fr)
-      'panel' minmax(0, 1fr)
+      'map' minmax(120px, 1fr)
+      'panel' auto
       / 1fr;
+  }
+
+  .panel {
+    gap: 0.9rem;
   }
 }
 
@@ -91,6 +97,9 @@ a {
   flex-direction: column;
   gap: 1.25rem;
   padding: 1.25rem;
+  /* Keep clear of the iPhone notch (landscape) and home indicator. */
+  padding-right: max(1.25rem, env(safe-area-inset-right));
+  padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
   background: var(--surface);
   overflow: auto;
 }
@@ -238,6 +247,7 @@ a {
 
 .action {
   position: relative;
+  -webkit-touch-callout: none; /* no iOS long-press menu on hold buttons */
   min-height: 72px;
   border: none;
   border-radius: 12px;
@@ -292,6 +302,7 @@ a {
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .ptt-label {
@@ -303,6 +314,13 @@ a {
 .ptt-hint {
   font-size: 0.85rem;
   color: var(--muted);
+}
+
+/* "or hold Space" means nothing on a touch screen. */
+@media (hover: none) {
+  .ptt-hint.keyboard {
+    display: none;
+  }
 }
 
 .waveform {
@@ -348,12 +366,14 @@ a {
 }
 
 .banner {
+  padding-top: max(0.9rem, env(safe-area-inset-top));
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   justify-content: center;
   gap: 0.4rem 1.5rem;
-  padding: 0.9rem 1rem;
+  padding-inline: 1rem;
+  padding-bottom: 0.9rem;
   font-size: clamp(1.1rem, 2.6vw, 1.6rem);
   text-align: center;
   color: var(--bg);
@@ -361,7 +381,7 @@ a {
 
 .banner.danger {
   background: var(--danger);
-  color: var(--text);
+  color: var(--bg); /* dark on red: 5.9:1, white on red would be only 3:1 */
 }
 
 .banner.pullover {
@@ -426,9 +446,15 @@ a {
 }
 
 /* ---------- Map: tiles, route line, car markers ---------- */
-/* OSM tiles are light: grey them out and invert them into a quiet dark base map. */
-.dark-tiles {
+/* OSM tiles are light: grey them out and invert them into a quiet dark base map. The filter is
+   on each tile, and the map background matches the darkened land, so the hairline gaps
+   between tiles don't show. */
+.dark-tiles .leaflet-tile {
   filter: grayscale(1) invert(1) brightness(0.8) contrast(1.1);
+}
+
+.map.leaflet-container {
+  background: #2b2b2b;
 }
 
 .route-line {
@@ -468,4 +494,67 @@ a {
 .debug button {
   margin-top: 0.4rem;
   font: inherit;
+}
+
+/* ---------- Phone in landscape (short screens): tighter, the two buttons side by side ---------- */
+@media (orientation: landscape) and (max-height: 500px) {
+  .panel {
+    gap: 0.6rem;
+    padding: 0.75rem;
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+
+  .speed-value {
+    font-size: 3.6rem;
+  }
+
+  .speed-unit {
+    font-size: 1rem;
+  }
+
+  .hud-line {
+    margin-top: 0.3rem;
+    font-size: 0.85rem;
+  }
+
+  .strip {
+    padding: 0.6rem;
+  }
+
+  .strip-gaps {
+    margin-top: 0.3rem;
+    font-size: 0.85rem;
+  }
+
+  .controls {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .action,
+  .ptt {
+    min-height: 120px;
+  }
+
+  .action {
+    font-size: 1rem;
+  }
+
+  .ptt {
+    padding: 0.5rem;
+  }
+
+  .ptt-label {
+    font-size: 1.1rem;
+  }
+
+  .ptt-hint {
+    display: none;
+  }
+
+  .banner {
+    padding-bottom: 0.5rem;
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+    font-size: 1rem;
+  }
 }

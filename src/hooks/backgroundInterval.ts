@@ -6,12 +6,19 @@
 // Timers inside a Web Worker are not throttled that hard, so a tiny worker ticks and the
 // page does the work when the message arrives.
 export function backgroundInterval(fn: () => void, ms: number): () => void {
-  const source = `setInterval(() => postMessage(0), ${ms})`
-  const url = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }))
-  const worker = new Worker(url)
-  worker.onmessage = fn
-  return () => {
-    worker.terminate()
-    URL.revokeObjectURL(url)
+  try {
+    const source = `setInterval(() => postMessage(0), ${ms})`
+    const url = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }))
+    const worker = new Worker(url)
+    worker.onmessage = fn
+    return () => {
+      worker.terminate()
+      URL.revokeObjectURL(url)
+    }
+  } catch {
+    // No workers (old browser or a strict security policy): a plain interval still works
+    // while the tab is visible.
+    const id = window.setInterval(fn, ms)
+    return () => window.clearInterval(id)
   }
 }

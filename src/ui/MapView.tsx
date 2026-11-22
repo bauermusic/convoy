@@ -79,8 +79,14 @@ export function MapView({ route, cars, you, talking }: Props) {
       marker.setOpacity(!car ? 0 : car.stale ? 0.35 : 1)
       marker.getElement()?.classList.toggle('talking', role === talking)
     }
+    // Follow by whole pixels: panTo() would reset the view 10 times a second, and fractional
+    // offsets leave hairline seams between tiles.
     const follow = cars[you ?? 'lead']
-    if (follow) map.current?.panTo(follow, { animate: false })
+    const m = map.current
+    if (follow && m) {
+      const offset = m.latLngToContainerPoint(follow).subtract(m.getSize().divideBy(2)).round()
+      if (offset.x || offset.y) m.panBy(offset, { animate: false })
+    }
   })
 
   return <div ref={container} className="map" />
