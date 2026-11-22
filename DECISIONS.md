@@ -25,3 +25,33 @@ Running log of choices, shortcuts and deliberate omissions. Format: SPEC section
 - Decision: React 18.3, Vite 7, TypeScript 5.9, Vitest 5, Firebase JS SDK 12.
 - Why: React 18 as specified. TypeScript 5.9 rather than 7.x (the new native compiler) to stay on the widely supported toolchain. Vite 7 rather than 8 for the most mature React plugin pairing.
 - With two weeks: upgrade together once the newer majors settle.
+
+### Route: real road geometry instead of hand-authored waypoints
+- Context: SPEC section 4 asks for ~60–80 hand-authored, approximate waypoints near Col de Turini.
+- Decision: one OSRM driving route (OpenStreetMap data) from La Bollène-Vésubie to Col de Turini, simplified to 114 waypoints (Douglas-Peucker, 20 m tolerance), 16.4 km one way, stored as static data in `src/data/route.ts`. No routing call at runtime.
+- Why: hand-drawn points would not line up with the road on the map tiles. 114 points was the smallest count that still follows the hairpins.
+- With two weeks: real GPS positions map-matched to the road network.
+
+### Route end: out-and-back loop, `s` as an odometer
+- Context: SPEC section 4 says to clamp at the end of the route or loop back, and to document the choice.
+- Decision: the route is driven up and back down (`outAndBack`), so it starts and ends at the same point and the cars loop forever with no jump on the map. `s` keeps growing; only drawing wraps it.
+- Why: the demo never stops, and gaps computed from `s` stay correct across laps. At about 53 km/h average, `s` stays under the planned 1e6 rule limit for roughly 19 hours.
+- With two weeks: real routes with a start and a destination.
+
+### Uniform lookup table instead of binary search
+- Context: SPEC section 4 says `positionAt` uses binary search plus linear interpolation.
+- Decision: the table has a point every 10 m, so the index is `floor(s / 10)`; then interpolate.
+- Why: same result, less code to explain.
+- With two weeks: no change.
+
+### Map tiles: OpenStreetMap with a CSS dark filter instead of CARTO dark
+- Context: SPEC section 1 chose CARTO dark tiles because they needed no API key.
+- Decision: CARTO now serves "API KEY REQUIRED" watermarked tiles (seen 2026-11-22). The map uses standard OSM tiles darkened with `filter: grayscale invert`. Esri's dark basemap was also checked; it has almost no road detail in this area.
+- Why: no key, no sign-up, full road detail. Fine for a low-traffic demo under the OSM tile usage policy.
+- With two weeks: a proper dark vector style (MapTiler or Stadia with a key, or self-hosted tiles).
+
+### Simulation loop on `setInterval`, not `requestAnimationFrame`
+- Context: the cars must keep moving and publishing in Phase 2.
+- Decision: the sim steps every 100 ms on `setInterval`, with `dt` capped at 1 s.
+- Why: rAF stops in background tabs, while intervals keep running (throttled). A background tab still drives its car.
+- With two weeks: a Web Worker, or a server-side simulation.

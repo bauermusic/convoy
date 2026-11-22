@@ -37,10 +37,84 @@ body {
   color: var(--danger);
 }
 
-.hello {
-  padding: 2rem;
+/* Landscape first: map left (~65%), panel right. Portrait: map on top. */
+.app {
+  display: grid;
+  grid-template-columns: 65fr 35fr;
+  height: 100%;
 }
 
-.hello h1 {
+@media (orientation: portrait) {
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: 60fr 40fr;
+  }
+}
+
+.map {
+  height: 100%;
+  background: var(--bg);
+}
+
+.panel {
+  background: var(--surface);
+  padding: 1.5rem;
+  overflow: auto;
+}
+
+.panel h1 {
+  margin: 0;
   color: var(--accent);
+}
+
+.readout {
+  margin-top: 1rem;
+  font-size: 1.5rem;
+  border-spacing: 1.5rem 0.25rem;
+  margin-left: -1.5rem;
+}
+
+.readout th {
+  color: var(--muted);
+  font-size: 0.9rem;
+  text-align: left;
+}
+
+/* OSM tiles are light: grey them out and invert them into a quiet dark base map. */
+.dark-tiles {
+  filter: grayscale(1) invert(1) brightness(0.8) contrast(1.1);
+}
+
+/* Map: the route line and the car markers (Leaflet divIcons). */
+.route-line {
+  stroke: var(--accent);
+  stroke-width: 5;
+  stroke-opacity: 0.55;
+}
+
+.car {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 2px solid var(--bg);
+  color: var(--bg);
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.car-lead {
+  background: var(--accent);
+}
+
+.car-mid {
+  background: var(--text);
+}
+
+.car-tail {
+  background: #b794f6;
+}
+
+.car.you {
+  outline: 3px solid var(--text);
+  outline-offset: 3px;
 }

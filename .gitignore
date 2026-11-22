@@ -10,3 +10,6 @@ coverage/
 
 # Firebase CLI cache
 .firebase/
+
+# Claude Code local launch config
+.claude/
