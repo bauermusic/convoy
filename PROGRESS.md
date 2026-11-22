@@ -4,8 +4,8 @@ Update this file at the end of every phase and every work session.
 
 ## Status
 
-- Current phase: **Phase 5 — done in code and deployed; waiting on the author's phone test (Chrome + Safari).** Next: Phase 6 (README, status table, DECISIONS tidy)
-- Last commit: Phase 5 polish
+- Current phase: **Phase 6 — done.** Remaining: end-of-project fixes (see "To do at the end"), optional Phase 7.
+- Last commit: Phase 6 README and decisions
 
 ## Time log (active work only)
 
@@ -24,13 +24,16 @@ Total active time so far: 0h
 - [x] Phase 2 — Realtime sync (roles, host/NPC, telemetry, presence)
 - [x] Phase 3 — HUD, convoy logic, alerts, quick action
 - [x] Phase 4 — PTT tier 1
-- [ ] Phase 5 — Polish, phone test, final deploy
-- [ ] Phase 6 — README, status table, DECISIONS.md
+- [x] Phase 5 — Polish, phone test, final deploy
+- [x] Phase 6 — README, status table, DECISIONS.md
 - [ ] Phase 7 (optional) — PTT tier 2, recorded clip
+
+## To do at the end (agreed to defer)
+
+- **Mid can pass the lead.** Cars don't react to the car ahead, so when a car pulls over (or its device sleeps and it freezes), the cars behind drive past it. Proposed fix: a tested car-following limit (stay at least ~50 m behind the car ahead and match its speed), ignoring cars that lost contact. Until then it is listed under known limitations in the README.
 
 ## Known issues / notes for the next session
 
-- Database rules are auth-only placeholders; full validation rules come in Phase 2 (see DECISIONS.md).
 - Phase 2 verified in two tabs (`?sid=qa2`): sync, tail tab closing (host takes it over, no jump), network drop ("lost contact" after 3 s, host takes over, tab reclaims on reconnect), host tab closing (other tab becomes host). Deployed and checked on the live URL.
 - Bugs found and fixed while testing: the cars subscription started before sign-in; a refused claim threw instead of meaning "taken"; double sign-in under StrictMode. See DECISIONS.md "One anonymous user per tab".
 - Database was wiped after Phase 2 testing (it held stuck claims from the double sign-in bug). Test sessions (`qa*`, `parked`) are removed after each phase.
@@ -40,12 +43,11 @@ Total active time so far: 0h
 - Reset does not release roles: a stuck role (crashed tab whose onDisconnect never ran) still needs `firebase database:remove /sessions/demo/roles/<role>`.
 - Demo flow for the README: gear → tail lag 0.2 → wait ~1 min for CONVOY SPLIT → lag back to 1.0 → clears in ~1 min.
 - Phase 4 verified in two tabs (`?sid=qa4`): lead talks → tail sees "LEAD TALKING", disabled button, synthetic waveform, green ring on L; tail's Space press rejected; release → tail can talk (Space shortcut works); closing the talking tab frees the channel in < 2 s; forced release at 30 s.
-- NOT verified yet (the test browser has no mic or speakers): the real mic waveform and hearing the tones. Check on Chrome, and Safari in Phase 5.
+- Phone test (author, laptop + iPhone): devices see each other, PTT busy/talking states work both ways. No voice is transmitted (tier 1, expected).
 - After a forced release at 30 s, the user must lift and press again to talk.
 - Phase 5 checked in the test browser at 844×390 (phone landscape, with the split banner showing), 390×844 (portrait) and desktop. Both big buttons visible without scrolling.
-- Map tiles switched from CARTO to OSM (CARTO now needs a key). See DECISIONS.md. The README must not say CARTO.
+- Map tiles switched from CARTO to OSM (CARTO now needs a key). See DECISIONS.md.
 - Simulated over 2 h: gaps between neighbours stay 57–425 m, no overtaking, average ~53 km/h. A split only happens through the lag slider (Phase 3).
-- Empty `src/audio/` folder holds a `.gitkeep` until Phase 4.
 - Deploy: `npm run build && firebase deploy --only hosting` (rules: `firebase deploy --only database`).
 
 ## Deployed
