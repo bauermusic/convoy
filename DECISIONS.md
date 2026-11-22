@@ -28,6 +28,12 @@ Every shortcut, mock, deliberate omission and non-obvious choice, with what two 
 - Why: phones lock and browsers freeze tabs all the time; a demo link used by reviewers over several days must recover on its own. Verified with fake ghost holders in a test session: takeover, NPC driving, step-down and reset all worked.
 - With two weeks: real accounts (a returning driver gets their seat back), and a server that tracks presence instead of each client.
 
+### Leaving a page closes the connection (role switch, back/forward cache)
+- Context: switching roles reloads the page with a new anonymous user. Found in testing on the live site: the old page kept its seat and the host slot for 15–25 s, because the browser kept it frozen in its back/forward cache with the database connection still open, so `onDisconnect` never ran. Switching back (mid → lead → mid) was refused, and after a few quick switches every seat was held by an old page: "watching only", and Reset did nothing visible, because no tab was driving the cars.
+- Decision: on `pagehide` the page calls `goOffline()`, so the server runs the `onDisconnect` handlers straight away; on `pageshow` from the cache it calls `goOnline()`, and the normal reconnect path claims a seat again. `pagehide` is used rather than `unload`, which would stop the browser from caching the page.
+- Why: a two-line fix at the source, instead of shorter silence timeouts, which would also take seats away from tabs that are only briefly busy.
+- With two weeks: switch roles inside the page (release one seat, claim the other) without a reload, and real accounts so a returning driver keeps their seat.
+
 ### Security rules scope
 - Context: SPEC section 3 asks for typed rules.
 - Decision: signed-in users can read `/sessions`. `host` and `roles/{role}` can only be written when empty or held by the same uid. `cars/{role}` is validated (s 0..1e6, v 0..100, status enum, `t <= now`, no extra fields), but any signed-in user may write any car, because the host writes NPC cars. `roles` and `host` can also be taken over once their holder is silent (15 s / 10 s); `ptt` can only be changed by its holder or once expired (30 s); `alerts` are append-only and typed; `meta` is range-checked.
@@ -173,6 +179,12 @@ Every shortcut, mock, deliberate omission and non-obvious choice, with what two 
 - Decision: `?debug=1` adds a button that calls `goOffline()` / `goOnline()` on the Firebase connection.
 - Why: reviewers can see "lost contact" and the reconnect without DevTools. Going offline also lets the server run `onDisconnect`, so the host takes over the car, and the tab reclaims it on reconnect.
 - With two weeks: no change; it's a debug tool.
+
+### Hosting cache headers: the page is always revalidated
+- Context: Firebase Hosting served `index.html` with `max-age=3600`, so after a deploy a browser could keep running the old version for up to an hour (seen while checking the role-switch fix).
+- Decision: `index.html` (and `/`) is sent with `Cache-Control: no-cache`; the built files in `/assets/` have a content hash in their names and are cached for a year.
+- Why: reviewers always get the latest deploy, and the large Firebase bundle is still downloaded only once.
+- With two weeks: no change; this is the usual setup for a Vite app.
 
 ### Firebase config files written by hand instead of `firebase init`
 - Context: SPEC section 8 step 5 says to run `firebase init` for Hosting and Database.

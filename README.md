@@ -160,7 +160,7 @@ Each has a short entry in [DECISIONS.md](DECISIONS.md) (context, decision, why, 
 - **A frozen car is passed.** Cars keep 50 m behind the car ahead and queue behind a stopped one, but a car that lost contact (e.g. its phone went to sleep) is ignored, so the others drive past it rather than stopping behind a frozen marker.
 - **Phones that sleep stop driving.** iOS pauses the page when the screen locks or another app is opened; that car shows "lost contact". The screen is kept awake (Wake Lock) where supported.
 - **Clients are trusted.** Any signed-in user can write any car's telemetry (the host must write NPC cars). There is no per-session membership or rate limiting.
-- **Seats of frozen tabs are freed after 15 s, not instantly.** A locked phone or frozen tab keeps its connection open, so its seat is only taken over once its car has been silent for 15 s (host: 10 s). Until then that car shows "lost contact".
+- **Seats of frozen tabs are freed after 15 s, not instantly.** A locked phone or frozen tab keeps its connection open, so its seat is only taken over once its car has been silent for 15 s (host: 10 s). Until then that car shows "lost contact". In one test a silent host was only replaced after about 2.5 minutes: tabs that had been open a while didn't take it over, while a newly opened tab did within 3 s. The cause wasn't found; reloading a tab recovers.
 - **Single session at a time per URL**, a fixed route, and simulated positions only (no GPS).
 - **Tests cover domain logic only**: route, simulation and car-following, dead reckoning, convoy gaps/split, floor control (29 tests). Realtime behaviour was verified by hand in two tabs and on a phone; there are no end-to-end tests.
 

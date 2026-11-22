@@ -5,7 +5,7 @@
 // by the Realtime Database security rules in database.rules.json.
 import { initializeApp } from 'firebase/app'
 import { inMemoryPersistence, initializeAuth, signInAnonymously } from 'firebase/auth'
-import { getDatabase, onValue, ref } from 'firebase/database'
+import { getDatabase, goOffline, goOnline, onValue, ref } from 'firebase/database'
 
 const env = import.meta.env
 
@@ -22,6 +22,17 @@ const app = initializeApp({
 // both "own" the same car, since ownership is checked by uid.
 const auth = initializeAuth(app, { persistence: inMemoryPersistence })
 export const db = getDatabase(app)
+
+// Leaving the page (a role switch reloads it, or the tab closes): close the connection, so the
+// server runs our onDisconnect handlers now and frees our seat, host slot and talk floor.
+// Without this, the browser can keep the old page frozen in its back/forward cache with the
+// connection still open, and its seat stays taken until the 15 s silence takeover.
+// `pagehide` (unlike `unload`) doesn't stop the browser from caching the page.
+addEventListener('pagehide', () => goOffline(db))
+// Back to a cached page (e.g. the Back button): reconnect; useSession then claims a seat again.
+addEventListener('pageshow', (event) => {
+  if (event.persisted) goOnline(db)
+})
 
 let signedIn: Promise<string> | null = null
 
