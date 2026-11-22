@@ -133,3 +133,27 @@ Running log of choices, shortcuts and deliberate omissions. Format: SPEC section
 - Decision: the 100 ms loop is driven by a tiny Web Worker timer (`hooks/backgroundInterval.ts`), not `setInterval`.
 - Why: in testing, a tab hidden for 5 minutes was throttled by Chrome to one timer run per minute. Its car, and the NPCs it hosted, showed "lost contact" in the other tab. Worker timers are not throttled that hard.
 - With two weeks: a server-side simulation removes the dependency on any tab being active.
+
+### Push-to-talk: tier 1 (state only) reached
+- Context: the brief asks for hold-to-talk with a "transmitting now" state for everyone, a waveform or speaker indication, and simulated audio transfer.
+- Decision: tier 1 of SPEC section 7. Holding the button (or Space) claims the floor. The talker's mic drives a live waveform. Everyone else sees "LEAD TALKING", a synthetic waveform and a green ring on that car's map marker, and hears a synthesized tone when the channel opens and closes. No voice is sent.
+- Why: floor control and the shared "who is talking" state are the hard, testable part. Real audio (tier 2 clips, tier 3 WebRTC) is browser-specific and slow to verify in the time box.
+- With two weeks: WebRTC streaming through an SFU (e.g. LiveKit), Opus at low bitrate, push-to-talk mapped to the publish/mute state.
+
+### Floor control by transaction, no heartbeat
+- Context: SPEC section 5 says to claim the floor with a transaction, clean up with `onDisconnect`, and heartbeat every 5 s while held.
+- Decision: `claimFloor()` (pure, tested) runs inside the transaction: the floor can be taken if it is free, expired (held more than 30 s), or already ours. `onDisconnect` frees it when the talker's tab dies; the talker's tab also releases at 30 s. The rules enforce the same (holder or expired only). No heartbeat or `seq`.
+- Why: the 30 s cap already bounds a stuck floor (a frozen tab that stays connected), and `onDisconnect` covers a closed or crashed tab. A heartbeat would only shorten the worst case from 30 s, at the cost of more code and writes.
+- With two weeks: a 5 s heartbeat for faster recovery, plus talk priority (the lead can interrupt).
+
+### Microphone only while the button is held
+- Context: the talker's waveform needs mic access.
+- Decision: `getUserMedia` is opened on press and closed on release. The audio goes into an AnalyserNode only; it is never played back or sent. If the mic is missing or refused, PTT still works as state only, with a note on the button.
+- Why: the browser's recording indicator is only on while talking, which is what a user expects from a radio. The first press asks for permission, so the first transmission starts without a waveform until the user allows it.
+- With two weeks: keep a warm stream during a drive to remove the start-up delay.
+
+### Receivers hear tones only after touching the page
+- Context: browsers block audio until the user interacts with the page (autoplay policy).
+- Decision: the shared AudioContext is resumed on the first tap or key press anywhere. Until then, tones are skipped silently; the visual indicators always work.
+- Why: browsers don't allow working around this.
+- With two weeks: a "tap to enable radio audio" prompt on first load.

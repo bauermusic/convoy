@@ -4,8 +4,8 @@ Update this file at the end of every phase and every work session.
 
 ## Status
 
-- Current phase: **Phase 3 — done.** Next: Phase 4 (PTT tier 1)
-- Last commit: Phase 3 HUD and convoy logic
+- Current phase: **Phase 4 — done.** Next: Phase 5 (polish, phone test, final deploy)
+- Last commit: Phase 4 PTT tier 1
 
 ## Time log (active work only)
 
@@ -23,7 +23,7 @@ Total active time so far: 0h
 - [x] Phase 1 — Route, simulation, map (local only)
 - [x] Phase 2 — Realtime sync (roles, host/NPC, telemetry, presence)
 - [x] Phase 3 — HUD, convoy logic, alerts, quick action
-- [ ] Phase 4 — PTT tier 1
+- [x] Phase 4 — PTT tier 1
 - [ ] Phase 5 — Polish, phone test, final deploy
 - [ ] Phase 6 — README, status table, DECISIONS.md
 - [ ] Phase 7 (optional) — PTT tier 2, recorded clip
@@ -39,6 +39,10 @@ Total active time so far: 0h
 - Phase 3 verified in two tabs (`?sid=qa3`): lag 0.2 → split banner on both tabs at 1.54 km; lag back to 1 → lead/mid wait, alert clears at 1.19 km; quick tap ignored, 700 ms hold → "LEAD: PULLING OVER" on both tabs, car stops, banner gone after 8 s, RESUME works; reset → 300 m / 300 m in both tabs; portrait layout; a tab hidden for 7+ minutes keeps publishing (Web Worker timer).
 - Reset does not release roles: a stuck role (crashed tab whose onDisconnect never ran) still needs `firebase database:remove /sessions/demo/roles/<role>`.
 - Demo flow for the README: gear → tail lag 0.2 → wait ~1 min for CONVOY SPLIT → lag back to 1.0 → clears in ~1 min.
+- Phase 4 verified in two tabs (`?sid=qa4`): lead talks → tail sees "LEAD TALKING", disabled button, synthetic waveform, green ring on L; tail's Space press rejected; release → tail can talk (Space shortcut works); closing the talking tab frees the channel in < 2 s; forced release at 30 s.
+- NOT verified yet (the test browser has no mic or speakers): the real mic waveform and hearing the tones. Check on Chrome, and Safari in Phase 5.
+- After a forced release at 30 s, the user must lift and press again to talk.
+- Panel height: speed + strip + pull-over + PTT fit at 768 px tall; a phone in landscape will scroll the panel. Phase 5 layout item.
 - Map tiles show faint seams between tiles (CSS filter on OSM tiles). Polish item for Phase 5.
 - Map tiles switched from CARTO to OSM (CARTO now needs a key). See DECISIONS.md. The README must not say CARTO.
 - Simulated over 2 h: gaps between neighbours stay 57–425 m, no overtaking, average ~53 km/h. A split only happens through the lag slider (Phase 3).

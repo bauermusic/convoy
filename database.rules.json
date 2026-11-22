@@ -69,6 +69,22 @@
               ".validate": false
             }
           }
+        },
+        "ptt": {
+          ".write": "auth != null && (!data.exists() || data.child('uid').val() === auth.uid || data.child('startedAt').val() < now - 30000)",
+          ".validate": "newData.hasChildren(['role', 'uid', 'startedAt']) && newData.child('uid').val() === auth.uid",
+          "role": {
+            ".validate": "newData.val() === 'lead' || newData.val() === 'mid' || newData.val() === 'tail'"
+          },
+          "uid": {
+            ".validate": "newData.isString()"
+          },
+          "startedAt": {
+            ".validate": "newData.isNumber() && newData.val() <= now + 5000"
+          },
+          "$other": {
+            ".validate": false
+          }
         }
       }
     }

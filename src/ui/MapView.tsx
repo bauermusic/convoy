@@ -17,6 +17,8 @@ interface Props {
   cars: Partial<Record<Role, MapCar>>
   /** The car this tab drives: ringed, drawn on top, and followed by the map. */
   you: Role | null
+  /** The car whose driver is on the radio: gets a green ring. */
+  talking: Role | null
 }
 
 function icon(role: Role, isYou: boolean) {
@@ -27,7 +29,7 @@ function icon(role: Role, isYou: boolean) {
   })
 }
 
-export function MapView({ route, cars, you }: Props) {
+export function MapView({ route, cars, you, talking }: Props) {
   const container = useRef<HTMLDivElement>(null)
   const map = useRef<L.Map | null>(null)
   const markers = useRef<Partial<Record<Role, L.Marker>>>({})
@@ -75,6 +77,7 @@ export function MapView({ route, cars, you }: Props) {
       if (!marker) continue
       if (car) marker.setLatLng(car)
       marker.setOpacity(!car ? 0 : car.stale ? 0.35 : 1)
+      marker.getElement()?.classList.toggle('talking', role === talking)
     }
     const follow = cars[you ?? 'lead']
     if (follow) map.current?.panTo(follow, { animate: false })

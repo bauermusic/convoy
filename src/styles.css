@@ -278,6 +278,69 @@ a {
   position: relative;
 }
 
+/* ---------- Push-to-talk ---------- */
+.ptt {
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  min-height: 140px;
+  padding: 1rem;
+  border: 3px solid var(--muted);
+  border-radius: 16px;
+  background: var(--surface-2);
+  color: var(--text);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.ptt-label {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.ptt-hint {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.waveform {
+  width: 100%;
+  max-width: 240px;
+  height: 44px;
+  color: var(--muted);
+}
+
+.ptt.held {
+  border-color: var(--talking);
+  color: var(--talking);
+  box-shadow: 0 0 24px rgb(53 224 138 / 0.45);
+}
+
+.ptt.held .waveform,
+.ptt.busy .waveform {
+  color: var(--talking);
+}
+
+.ptt.busy {
+  border-color: var(--talking);
+  cursor: not-allowed;
+}
+
+.ptt.busy .ptt-label {
+  color: var(--talking);
+}
+
+.ptt:disabled:not(.busy) {
+  opacity: 0.5;
+}
+
+/* Map marker of the car whose driver is on the radio. */
+.car.talking {
+  box-shadow: 0 0 0 4px var(--talking), 0 0 18px var(--talking);
+}
+
 /* ---------- Banners ---------- */
 .banners {
   grid-area: banners;
