@@ -85,6 +85,31 @@
           "$other": {
             ".validate": false
           }
+        },
+        "clips": {
+          ".write": "auth != null && !newData.exists()",
+          "$id": {
+            ".write": "auth != null && ((!data.exists() && newData.child('uid').val() === auth.uid) || (!newData.exists() && data.child('t').val() < now - 30000))",
+            ".validate": "newData.hasChildren(['role', 'uid', 'mime', 'b64', 't'])",
+            "role": {
+              ".validate": "newData.val() === 'lead' || newData.val() === 'mid' || newData.val() === 'tail'"
+            },
+            "uid": {
+              ".validate": "newData.isString()"
+            },
+            "mime": {
+              ".validate": "newData.isString() && newData.val().length < 64"
+            },
+            "b64": {
+              ".validate": "newData.isString() && newData.val().length <= 200000"
+            },
+            "t": {
+              ".validate": "newData.isNumber() && newData.val() <= now"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
         }
       }
     }

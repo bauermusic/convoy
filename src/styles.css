@@ -337,7 +337,8 @@ a {
 }
 
 .ptt.held .waveform,
-.ptt.busy .waveform {
+.ptt.busy .waveform,
+.ptt.playing .waveform {
   color: var(--talking);
 }
 

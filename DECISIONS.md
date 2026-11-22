@@ -130,11 +130,11 @@ Every shortcut, mock, deliberate omission and non-obvious choice, with what two 
 
 ## Push-to-talk
 
-### Push-to-talk: tier 1 (state only) reached
+### Push-to-talk: tier 2 (recorded voice messages) reached
 - Context: the brief asks for hold-to-talk with a "transmitting now" state for everyone, a waveform or speaker indication, and simulated audio transfer.
-- Decision: tier 1 of SPEC section 7. Holding the button (or Space) claims the floor. The talker's mic drives a live waveform. Everyone else sees "LEAD TALKING", a synthetic waveform and a green ring on that car's map marker, and hears a synthesized tone when the channel opens and closes. No voice is sent.
-- Why: floor control and the shared "who is talking" state are the hard, testable part. Real audio (tier 2 clips, tier 3 WebRTC) is browser-specific and slow to verify in the time box.
-- With two weeks: WebRTC streaming through an SFU (e.g. LiveKit), Opus at low bitrate, push-to-talk mapped to the publish/mute state.
+- Decision: tier 2 of SPEC section 7. Holding the button (or Space) claims the floor and records the mic with `MediaRecorder` (up to 8 s, 32 kbit/s). On release the clip is pushed to `clips/` as base64, and every other tab plays it through the shared AudioContext, queued so messages never overlap. Everyone sees "LEAD TALKING", a green ring on the map and the opening and closing tones while the talker is live; the message plays after release, with a real waveform. Clips are deleted after 30 s. Tier 1 (state only) was built first and is still the fallback without a mic.
+- Why: a recorded message transfers real voice with no media server, and fits the database the app already uses. It is delayed rather than live, which suits walkie-talkie use. Tested iPhone Safari → Mac Chrome.
+- With two weeks: WebRTC streaming through an SFU (e.g. LiveKit), Opus at low bitrate, push-to-talk mapped to the publish/mute state; recorded messages kept as the fallback.
 
 ### Floor control by transaction, no heartbeat
 - Context: SPEC section 5 says to claim the floor with a transaction, clean up with `onDisconnect`, and heartbeat every 5 s while held.
@@ -142,10 +142,10 @@ Every shortcut, mock, deliberate omission and non-obvious choice, with what two 
 - Why: the 30 s cap already bounds a stuck floor (a frozen tab that stays connected), and `onDisconnect` covers a closed or crashed tab. A heartbeat would only shorten the worst case from 30 s, at the cost of more code and writes.
 - With two weeks: a 5 s heartbeat for faster recovery, plus talk priority (the lead can interrupt).
 
-### Microphone only while the button is held
-- Context: the talker's waveform needs mic access.
-- Decision: `getUserMedia` is opened on press and closed on release. The audio goes into an AnalyserNode only; it is never played back or sent. If the mic is missing or refused, PTT still works as state only, with a note on the button.
-- Why: the browser's recording indicator is only on while talking, which is what a user expects from a radio. The first press asks for permission, so the first transmission starts without a waveform until the user allows it.
+### Microphone only while the button is held, requested inside the tap
+- Context: the talker's waveform and voice message need mic access.
+- Decision: `getUserMedia` is called on press and closed on release. It is called directly in the tap, in parallel with the floor claim, not after it. If the mic is missing or refused, PTT still works as state only, and the button shows the reason (e.g. "permission denied").
+- Why: the browser's recording indicator is only on while talking, which is what a user expects from a radio. iOS browsers can refuse a mic request that comes after the tap has ended (here, after the claim's network round-trip), without showing a prompt; this came up in device testing.
 - With two weeks: keep a warm stream during a drive to remove the start-up delay.
 
 ### Receivers hear tones only after touching the page

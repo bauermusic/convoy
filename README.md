@@ -17,7 +17,7 @@ A single tab also works: the tab that is "host" drives every empty seat as a sim
 |---|---|
 | Convoy split alert | Click the gear (bottom-left of the map), drag **Tail lag** to 0.2. After about a minute the lead–tail gap passes 1.5 km and every tab shows **CONVOY SPLIT — SLOW DOWN AND WAIT** (with the Hebrew line from the brief). Drag the slider back to 1.0: the lead and mid "wait", and the alert clears below 1.2 km. |
 | Pull over / breakdown | **Hold** the PULL OVER button for 0.6 s. Every tab shows "LEAD: PULLING OVER" and your car stops. Tap RESUME to drive on. |
-| Push-to-talk | **Hold** the talk button (or the Space bar on desktop). Others see "LEAD TALKING", a waveform and a green ring on your car, and hear a short tone. A second talker is refused while the channel is busy. |
+| Push-to-talk | Tap the page once on each device (browsers block sound until you do). **Hold** the talk button (or the Space bar on desktop) and speak, up to 8 s. Others see "LEAD TALKING" and a green ring on your car and hear a tone; when you let go, your message plays on their devices. A second talker is refused while the channel is busy. |
 | Lost contact | Add `&debug=1` to the URL and press **Simulate network drop**: after 3 s the other cars dim and show "lost contact"; the host takes over your car until you reconnect. |
 | Look around the map | Drag the map: following stops and a re-centre button appears. It also re-centres by itself after 15 s. Zooming keeps your car in the middle. |
 | Start over | Gear → **Reset session** puts every car back at the start in all tabs. |
@@ -87,6 +87,7 @@ flowchart LR
 | `cars/{role}` | `{ s, v, status, npc, t }` | `s` = metres along the road, `v` = m/s, `t` = server timestamp. |
 | `ptt` | `{ role, uid, startedAt }` | The push-to-talk channel. Empty = free. |
 | `alerts/{id}` | `{ type, role, t }` | `pullover` / `resume`. Append-only. |
+| `clips/{id}` | `{ role, uid, mime, b64, t }` | Voice messages (base64 audio, about 43 KB for 8 s). Deleted after 30 s. |
 | `meta` | `{ tailLag, resetAt }` | Shared demo settings (lag slider, reset). |
 
 Rules ([database.rules.json](database.rules.json)): signed-in users only. `roles`, `host` and `ptt` can only be changed by their holder (or once the talk floor expires). Car samples are type- and range-checked.
@@ -101,9 +102,10 @@ Rules ([database.rules.json](database.rules.json)): signed-in users only. `roles
 ### One push-to-talk claim
 
 1. Pointer down (or Space) → `takeFloor` runs a transaction on `ptt`. Inside it, the pure `claimFloor()` accepts only if the floor is free, held more than 30 s, or already ours.
-2. On success the tab registers `onDisconnect().remove()`, plays a tone, opens the microphone for the waveform, and starts a 30 s cut-off timer.
+2. In the same tap the microphone is requested (iOS refuses mic requests made after the tap). On success the tab registers `onDisconnect().remove()`, plays a tone, and `MediaRecorder` starts recording, for at most 8 s.
 3. Other tabs see `ptt` change: "LEAD TALKING", a synthetic waveform, a green ring on the map marker, an opening tone. Their button is disabled.
-4. Pointer up → the mic closes and `ptt` is removed (closing tone). If the tab dies instead, the server removes `ptt` through `onDisconnect`.
+4. Pointer up → recording stops, the clip is pushed to `clips/`, the mic closes and `ptt` is removed (closing tone). If the tab dies instead, the server removes `ptt` through `onDisconnect`.
+5. Other tabs decode and play the clip, one message after another. The waveform shows the real playback level.
 
 ### Code layout
 
@@ -112,8 +114,8 @@ src/
   domain/     pure logic, no React or Firebase; unit-tested
               route (road lookup), sim (car physics), deadReckoning, convoy (gaps, split), pttFloor
   data/       the route waypoints (OpenStreetMap road via OSRM, simplified)
-  firebase/   client (init, auth, server clock), session (role/host claims), telemetry, ptt, alerts, meta
-  audio/      Web Audio context, microphone analyser, synthesized tones
+  firebase/   client (init, auth, server clock), session (role/host claims), telemetry, ptt, clips, alerts, meta
+  audio/      Web Audio context, microphone analyser, voice message record/play, synthesized tones
   hooks/      useSession, useConvoy (the main loop), usePtt, useAlerts, useWakeLock
   ui/         MapView (Leaflet via a ref), Hud, ConvoyStrip, PttButton, Waveform, HoldButton, AlertBanner, DemoControls, DebugOverlay
 ```
@@ -130,8 +132,8 @@ About 1,550 lines of TypeScript excluding tests and route data.
 | 4 | Bonus: two tabs sync live | **Done** | Each tab owns a car; the host drives empty seats; a closed tab's car is taken over where it was. Verified with two tabs and laptop + iPhone. |
 | 5 | Large hold-to-talk PTT button | **Done** | 140 px (120 px on phone landscape), pointer capture, `touch-action: none`, Space bar on desktop. |
 | 6 | "Transmitting now" state and who is talking | **Done** | Floor control by transaction: one talker at a time, "LEAD TALKING" on other tabs, green ring on the map, 30 s limit, freed if the talker's tab dies. |
-| 7 | Waveform indicator | **Done (partly simulated)** | Talker: real microphone level. Receivers: a **synthetic** animation, because no audio is sent. |
-| 8 | Audio transfer | **Simulated** | Tier 1 of 3: receivers hear synthesized open/close tones, **no voice is transmitted**. Recorded clips (tier 2) and WebRTC streaming (tier 3) were not built. |
+| 7 | Waveform indicator | **Done** | Talker: live microphone level. Receivers: real level of the message as it plays; while someone is still talking (their audio hasn't arrived yet), a synthetic animation. |
+| 8 | Audio transfer | **Done (recorded, not live)** | Tier 2 of 3: the talker's voice is recorded (up to 8 s) and played on the other devices **after they let go**, like a voice message. Tested iPhone Safari → Mac Chrome. Live streaming (WebRTC, tier 3) was not built. |
 | 9 | Split alert beyond threshold | **Done** | Along-road lead–tail gap, on above 1.5 km, off below 1.2 km (tested). English message plus the Hebrew line from the brief. |
 | 10 | Quick action "pull over / breakdown" | **Done** | Hold 0.6 s to confirm; broadcast banner on all tabs for 8 s; RESUME. Known issue: the cars behind drive past a stopped car (see limitations). |
 | 11 | Dark, high-contrast, landscape HUD | **Done** | Landscape-first, compact phone-landscape layout, usable in portrait. Primary text contrast 14.8–17.8:1; secondary text about 5.3:1. No formal accessibility audit. |
@@ -154,7 +156,7 @@ Each has a short entry in [DECISIONS.md](DECISIONS.md) (context, decision, why, 
 
 ## Known limitations
 
-- **No voice is transmitted.** Push-to-talk is state, waveform and tones only (see table, row 8).
+- **Voice is delayed, not live.** A message plays after the talker releases the button, and is capped at 8 s. Tested iPhone Safari → Mac Chrome only; the Mac used for testing has no microphone, so Chrome → iPhone wasn't tested. If a browser can't decode the other's format (WebM/Opus vs MP4/AAC), it skips the message and logs a warning.
 - **Cars can pass each other.** Cars don't react to the car ahead, so when a car pulls over, or its phone sleeps and the car freezes, the cars behind drive past it. The order then changes and the strip shows it.
 - **Phones that sleep stop driving.** iOS pauses the page when the screen locks or another app is opened; that car shows "lost contact". The screen is kept awake (Wake Lock) where supported.
 - **Clients are trusted.** Any signed-in user can write any car's telemetry (the host must write NPC cars). There is no per-session membership or rate limiting.
@@ -164,7 +166,7 @@ Each has a short entry in [DECISIONS.md](DECISIONS.md) (context, decision, why, 
 
 ## With two weeks instead of four hours
 
-1. **Real audio:** WebRTC through an SFU (e.g. LiveKit), with the talk floor mapped to publish/mute. A recorded-clip fallback for poor networks.
+1. **Live audio:** WebRTC through an SFU (e.g. LiveKit), with the talk floor mapped to publish/mute. Keep today's recorded messages as the fallback for poor networks.
 2. **Server-authoritative state:** positions come from devices (GPS) and are validated, smoothed and map-matched on a server. Clients can't spoof other cars. The simulation moves server-side for demos.
 3. **Network drops in the field:** buffer the local car's samples while offline and replay them on reconnect, show how stale every car is, and adapt the publish rate to the connection.
 4. **Security and scale:** per-convoy membership and invites, rules so that only the holder (or the server) writes a car, rate limits, many concurrent convoys, and cleanup of old sessions and anonymous users.
@@ -176,7 +178,8 @@ Each has a short entry in [DECISIONS.md](DECISIONS.md) (context, decision, why, 
 
 - Tested on Chrome (desktop) and Safari on iPhone. Everything except audio has no browser-specific code.
 - Audio only starts after a user gesture: the first tap or key press on the page unlocks it. Until then, a receiver sees the talking indicators but hears no tone.
-- The microphone needs HTTPS or `localhost`, and a permission prompt on the first press. Without a mic, push-to-talk still works as state only, with a note on the button.
+- The microphone needs HTTPS or `localhost`, and a permission prompt on the first press. Without a mic, push-to-talk still works as state only, and the button says why (e.g. "permission denied").
+- Chrome records voice as WebM/Opus and Safari as MP4/AAC; each receiver decodes what it gets.
 - Safari / iOS handle Web Audio and background tabs differently: a locked phone stops sending its car.
 
 ## Repository guide

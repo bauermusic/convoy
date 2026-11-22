@@ -20,11 +20,12 @@ export function setTailLag(sid: string, tailLag: number) {
   return update(sessionRef(sid, 'meta'), { tailLag })
 }
 
-/** Restart the convoy: cars back to their starting spacing, lag back to 1, alerts cleared. */
+/** Restart the convoy: cars back to their starting spacing, lag back to 1, alerts and clips cleared. */
 export function resetSession(sid: string) {
   return update(sessionRef(sid, ''), {
     'meta/tailLag': 1,
     'meta/resetAt': serverTimestamp(),
     alerts: null,
+    clips: null,
   })
 }

@@ -4,8 +4,8 @@ Update this file at the end of every phase and every work session.
 
 ## Status
 
-- Current phase: **Phase 6 — done.** Remaining: end-of-project fixes (see "To do at the end"), optional Phase 7.
-- Last commit: Phase 6 README and decisions
+- Current phase: **All phases done, including optional Phase 7.** Remaining: end-of-project fixes (see "To do at the end").
+- Last commit: Phase 7 voice messages
 
 ## Time log (active work only)
 
@@ -26,13 +26,15 @@ Total active time so far: 0h
 - [x] Phase 4 — PTT tier 1
 - [x] Phase 5 — Polish, phone test, final deploy
 - [x] Phase 6 — README, status table, DECISIONS.md
-- [ ] Phase 7 (optional) — PTT tier 2, recorded clip
+- [x] Phase 7 (optional) — PTT tier 2, recorded clip
 
 ## To do at the end (agreed to defer)
 
 - **Mid can pass the lead.** Cars don't react to the car ahead, so when a car pulls over (or its device sleeps and it freezes), the cars behind drive past it. Proposed fix: a tested car-following limit (stay at least ~50 m behind the car ahead and match its speed), ignoring cars that lost contact. Until then it is listed under known limitations in the README.
 
 ## Known issues / notes for the next session
+
+- Phase 7 verified: receive path locally (generated clip plays with label, real waveform, green ring); on devices iPhone Safari (talking) → Mac Chrome (listening) works. Not tested: Chrome → iPhone (the Mac has no microphone), Chrome on iOS.
 
 - Post-phase fix: map follow mode (drag → re-centre button, auto-resume after 15 s, zoom around the car with a 1 s pause, gliding catch-up). Verified in the test browser: no snap-back while dragged, button and auto-resume re-centre exactly, zoom moves the car at most 10 px per frame.
 

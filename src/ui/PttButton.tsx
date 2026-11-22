@@ -32,15 +32,22 @@ export function PttButton({ ptt, canTalk }: { ptt: Ptt; canTalk: boolean }) {
     state.kind === 'held' ? 'TRANSMITTING' : state.kind === 'busy' ? `${state.by.toUpperCase()} TALKING` : 'HOLD TO TALK'
   const hint = !canTalk
     ? 'Watching only'
-    : state.kind === 'held' && ptt.noMic
-      ? 'No microphone: others see you talking, no audio'
-      : state.kind === 'free'
-        ? 'or hold Space'
-        : ''
+    : state.kind === 'held' && ptt.micProblem
+      ? `No microphone (${ptt.micProblem}): others see you talking, no audio`
+      : state.kind === 'held' && ptt.recording
+        ? 'Recording message · max 8 s'
+        : ptt.playing
+          ? `▶ ${ptt.playing.role.toUpperCase()}'s message`
+          : state.kind === 'free'
+            ? 'or hold Space'
+            : ''
+  // Real levels when we have audio (our mic, or a message playing); synthetic while someone
+  // talks live (their audio only arrives when they let go).
+  const analyser = state.kind === 'held' ? (ptt.mic?.analyser ?? null) : (ptt.playing?.analyser ?? null)
 
   return (
     <button
-      className={`ptt ${state.kind}`}
+      className={`ptt ${state.kind}${ptt.playing ? ' playing' : ''}`}
       disabled={!canTalk || state.kind === 'busy'}
       onPointerDown={(e) => {
         try {
@@ -54,9 +61,9 @@ export function PttButton({ ptt, canTalk }: { ptt: Ptt; canTalk: boolean }) {
       onPointerCancel={release}
       onContextMenu={(e) => e.preventDefault()}
     >
-      <Waveform mic={state.kind === 'held' ? ptt.mic : null} active={state.kind !== 'free'} />
+      <Waveform analyser={analyser} active={state.kind !== 'free' || ptt.playing !== null} />
       <span className="ptt-label">{label}</span>
-      {hint && <span className={`ptt-hint${state.kind === 'free' ? ' keyboard' : ''}`}>{hint}</span>}
+      {hint && <span className={`ptt-hint${hint === 'or hold Space' ? ' keyboard' : ''}`}>{hint}</span>}
     </button>
   )
 }
