@@ -5,7 +5,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { ROLES, type LatLng, type Role } from '../domain/types'
 
-const LETTER: Record<Role, string> = { lead: 'L', mid: 'M', tail: 'T' }
+import { LETTER } from './format'
 
 export interface MapCar extends LatLng {
   stale: boolean
@@ -46,8 +46,14 @@ export function MapView({ route, cars, you }: Props) {
     for (const role of ROLES) markers.current[role] = L.marker(route[0], { icon: icon(role, false), opacity: 0 }).addTo(m)
     map.current = m
 
+    // Leaflet measures its container once. When a banner appears the map shrinks, so tell
+    // Leaflet to re-measure, or tiles would be missing at the edge.
+    const resize = new ResizeObserver(() => m.invalidateSize())
+    resize.observe(container.current!)
+
     // React StrictMode mounts twice in dev; removing the map lets the second mount start clean.
     return () => {
+      resize.disconnect()
       m.remove()
       map.current = null
       markers.current = {}

@@ -15,7 +15,7 @@ import {
 import { ROLES, type Role } from '../domain/types'
 import { db } from './client'
 
-export const sessionRef = (sid: string, path: string) => ref(db, `sessions/${sid}/${path}`)
+export const sessionRef = (sid: string, path: string) => ref(db, path ? `sessions/${sid}/${path}` : `sessions/${sid}`)
 
 /** Take a slot holding { uid, ... } if it is free or already ours. Resolves to success. */
 async function claim(slot: DatabaseReference, uid: string, extra: object = {}): Promise<boolean> {

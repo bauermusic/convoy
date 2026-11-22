@@ -97,3 +97,39 @@ Running log of choices, shortcuts and deliberate omissions. Format: SPEC section
 - Decision: `?debug=1` adds a button that calls `goOffline()` / `goOnline()` on the Firebase connection.
 - Why: reviewers can see "lost contact" and the reconnect without DevTools. Going offline also lets the server run `onDisconnect`, so the host takes over the car, and the tab reclaims it on reconnect.
 - With two weeks: no change; it's a debug tool.
+
+### Along-route gaps and split hysteresis
+- Context: the brief asks for an alert when the lead–tail distance exceeds a threshold (e.g. 1.5 km).
+- Decision: gaps are differences of `s` (distance along the road). The alert turns on above 1500 m and only clears below 1200 m. Cars that lost contact are left out, and while a gap is unknown the alert keeps its last state.
+- Why: on hairpins, straight-line distance can be a fraction of the road distance. A single threshold would flash the alert on and off while the gap hovers around 1.5 km.
+- With two weeks: per-convoy thresholds, and alerts based on time gap (seconds behind) as well as distance.
+
+### Simulated drivers obey the split alert
+- Context: Phase 3 acceptance says the split alert clears again below 1.2 km. In the simulation nobody actually controls the cars.
+- Decision: while the convoy is split, the simulated lead and mid cars drive at 50% speed (`WAIT_FACTOR`). The tail obeys only the lag slider.
+- Why: the alert says "slow down and wait", so the simulated drivers do. Without this the gap could never close, and the demo would end stuck in "split".
+- With two weeks: real drivers; the app would only advise.
+
+### Threshold as a constant, demo settings in `meta/`
+- Context: SPEC section 3 puts `meta/threshold` in the database.
+- Decision: thresholds are constants in `domain/convoy.ts`. `meta/` holds the shared demo settings instead: `tailLag` (slider) and `resetAt` (reset button).
+- Why: nothing changes the threshold at runtime. The lag and reset must be shared, because whichever tab drives the tail (human or host) has to apply them.
+- With two weeks: per-session settings, editable by the convoy organiser.
+
+### Reset session restarts cars at the grid in every tab
+- Context: SPEC section 6 lists a "reset session" demo control.
+- Decision: reset writes `meta/resetAt` (plus tail lag back to 1 and alerts cleared). Each tab, on seeing a new `resetAt`, puts the cars it drives back at their starting spacing and ignores old samples.
+- Why: deleting car data is not enough, because every driving tab would immediately rewrite its car from memory. A first version continued from old samples that were still arriving, and testing caught it.
+- With two weeks: server-owned session state makes reset a single server action.
+
+### Pull-over alerts: 8 s banners, resume clears them
+- Context: the brief asks for a "Pull over / Breakdown" quick action that broadcasts to all vehicles.
+- Decision: hold-to-confirm (600 ms) sets your own car to `stopped` and pushes an alert to `alerts/` (append-only in the rules). All tabs show "ROLE: PULLING OVER" for 8 s; a RESUME tap drives on and clears that banner. A car taken over by the host as an NPC always drives on.
+- Why: hold-to-confirm prevents accidental taps while driving. Alerts older than 10 s are ignored on load, so a late joiner doesn't see old news.
+- With two weeks: acknowledgements ("seen by LEAD"), a persistent "stopped" marker on the map, and push notifications.
+
+### Background tabs: the loop runs on a Web Worker timer
+- Context: two-tab sync must keep working when one tab is in the background.
+- Decision: the 100 ms loop is driven by a tiny Web Worker timer (`hooks/backgroundInterval.ts`), not `setInterval`.
+- Why: in testing, a tab hidden for 5 minutes was throttled by Chrome to one timer run per minute. Its car, and the NPCs it hosted, showed "lost contact" in the other tab. Worker timers are not throttled that hard.
+- With two weeks: a server-side simulation removes the dependency on any tab being active.

@@ -19,12 +19,55 @@
           "$role": {
             ".write": "auth != null",
             ".validate": "($role === 'lead' || $role === 'mid' || $role === 'tail') && newData.hasChildren(['s', 'v', 'status', 'npc', 't'])",
-            "s": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000" },
-            "v": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100" },
-            "status": { ".validate": "newData.val() === 'driving' || newData.val() === 'stopped'" },
-            "npc": { ".validate": "newData.isBoolean()" },
-            "t": { ".validate": "newData.isNumber() && newData.val() <= now" },
-            "$other": { ".validate": false }
+            "s": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000"
+            },
+            "v": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100"
+            },
+            "status": {
+              ".validate": "newData.val() === 'driving' || newData.val() === 'stopped'"
+            },
+            "npc": {
+              ".validate": "newData.isBoolean()"
+            },
+            "t": {
+              ".validate": "newData.isNumber() && newData.val() <= now"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "meta": {
+          ".write": "auth != null",
+          "tailLag": {
+            ".validate": "newData.isNumber() && newData.val() >= 0.2 && newData.val() <= 1"
+          },
+          "resetAt": {
+            ".validate": "newData.isNumber() && newData.val() <= now"
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
+        "alerts": {
+          ".write": "auth != null && !newData.exists()",
+          "$id": {
+            ".write": "auth != null && !data.exists()",
+            ".validate": "newData.hasChildren(['type', 'role', 't'])",
+            "type": {
+              ".validate": "newData.val() === 'pullover' || newData.val() === 'resume'"
+            },
+            "role": {
+              ".validate": "newData.val() === 'lead' || newData.val() === 'mid' || newData.val() === 'tail'"
+            },
+            "t": {
+              ".validate": "newData.isNumber() && newData.val() <= now"
+            },
+            "$other": {
+              ".validate": false
+            }
           }
         }
       }

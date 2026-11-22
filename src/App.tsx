@@ -1,11 +1,16 @@
-// Phase 2: the map plus a temporary readout of the synced convoy.
-// The driver HUD replaces the readout in Phase 3.
+// The driver HUD. Landscape: map on the left, instruments on the right. Portrait: map on top.
 import { ROUTE } from './data/route'
 import { positionAt } from './domain/route'
 import { ROLES, type Role } from './domain/types'
-import { useCars } from './hooks/useCars'
+import { useAlerts } from './hooks/useAlerts'
+import { useConvoy } from './hooks/useConvoy'
 import { useSession } from './hooks/useSession'
+import { AlertBanner } from './ui/AlertBanner'
+import { ConvoyStrip } from './ui/ConvoyStrip'
 import { DebugOverlay } from './ui/DebugOverlay'
+import { DemoControls } from './ui/DemoControls'
+import { HoldButton } from './ui/HoldButton'
+import { Hud } from './ui/Hud'
 import { MapView, type MapCar } from './ui/MapView'
 
 // URL parameters: ?sid=demo&role=lead|mid|tail&debug=1. No role = mid ("My Car" in the brief).
@@ -14,58 +19,46 @@ const sid = params.get('sid') || 'demo'
 const wantedRole: Role = ROLES.find((r) => r === params.get('role')) ?? 'mid'
 const debug = params.get('debug') === '1'
 
-const kmh = (v: number) => Math.round(v * 3.6)
-const km = (s: number) => (s / 1000).toFixed(2)
-
 export function App() {
   const session = useSession(sid, wantedRole)
-  const cars = useCars(sid, session)
+  const convoy = useConvoy(sid, session)
+  const alerts = useAlerts(sid, session.uid !== null)
+  const { cars } = convoy
+  const role = session.role
+  const you = role ? cars[role] : undefined
 
   const mapCars: Partial<Record<Role, MapCar>> = {}
-  for (const role of ROLES) {
-    const car = cars[role]
-    if (car) mapCars[role] = { ...positionAt(ROUTE, car.s), stale: car.stale }
+  for (const r of ROLES) {
+    const car = cars[r]
+    if (car) mapCars[r] = { ...positionAt(ROUTE, car.s), stale: car.stale }
   }
 
   return (
     <div className="app">
-      <MapView route={ROUTE.points} cars={mapCars} you={session.role} />
+      <AlertBanner split={convoy.split} alerts={alerts} />
+      <div className="map-area">
+        <MapView route={ROUTE.points} cars={mapCars} you={role} />
+        <DemoControls sid={sid} tailLag={convoy.tailLag} role={role} debug={debug} />
+        {debug && <DebugOverlay session={session} />}
+      </div>
       <aside className="panel">
-        <h1>Live Convoy HUD</h1>
-        <p className="muted">{statusLine(session)}</p>
-        <table className="readout">
-          <thead>
-            <tr>
-              <th>Car</th>
-              <th>km/h</th>
-              <th>km</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {ROLES.map((role) => {
-              const car = cars[role]
-              return (
-                <tr key={role} className={car?.stale ? 'stale' : undefined}>
-                  <td>{role === session.role ? 'YOU' : role}</td>
-                  <td>{car ? kmh(car.v) : '—'}</td>
-                  <td>{car ? km(car.s) : '—'}</td>
-                  <td className="tag">{car?.stale ? 'lost contact' : car?.npc ? 'NPC' : ''}</td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+        <Hud session={session} sid={sid} you={you} lost={ROLES.filter((r) => cars[r]?.stale)} />
+        <ConvoyStrip cars={cars} gaps={convoy.gaps} split={convoy.split} you={role} />
+        <div className="controls">
+          {role &&
+            (you?.status === 'stopped' ? (
+              <button className="action resume" onClick={() => convoy.setStatus('driving')}>
+                RESUME
+              </button>
+            ) : (
+              <HoldButton
+                className="action pullover"
+                label="PULL OVER / BREAKDOWN"
+                onConfirm={() => convoy.setStatus('stopped')}
+              />
+            ))}
+        </div>
       </aside>
-      {debug && <DebugOverlay session={session} />}
     </div>
   )
-}
-
-function statusLine(s: ReturnType<typeof useSession>): string {
-  if (s.error) return `Error: ${s.error}`
-  if (!s.uid) return 'Signing in…'
-  if (!s.connected) return 'Offline: reconnecting…'
-  if (!s.role) return 'Convoy full: watching only'
-  return `Driving ${s.role}${s.isHost ? ' · host' : ''} · session "${sid}"`
 }

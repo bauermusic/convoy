@@ -2,12 +2,16 @@
 :root {
   --bg: #0b0d10;
   --surface: #14181d;
+  --surface-2: #1c2128;
   --text: #f2f5f7;
   --muted: #8a94a0;
   --accent: #3dd6f5;
   --warning: #ffb020;
   --danger: #ff4d4f;
   --talking: #35e08a;
+  --car-lead: var(--accent);
+  --car-mid: var(--text);
+  --car-tail: #b794f6;
   color-scheme: dark;
 }
 
@@ -27,28 +31,53 @@ body {
   color: var(--text);
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   font-variant-numeric: tabular-nums;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+a {
+  color: var(--accent);
 }
 
 .muted {
   color: var(--muted);
 }
 
-.danger {
-  color: var(--danger);
+.warn-text {
+  color: var(--warning);
 }
 
-/* Landscape first: map left (~65%), panel right. Portrait: map on top. */
+/* ---------- Layout: landscape first, map left (~65%), instruments right ---------- */
+/* Banners get their own row, so they push content down instead of covering it. */
 .app {
   display: grid;
-  grid-template-columns: 65fr 35fr;
+  grid-template:
+    'banners banners' auto
+    'map panel' minmax(0, 1fr)
+    / 65fr 35fr;
   height: 100%;
 }
 
 @media (orientation: portrait) {
   .app {
-    grid-template-columns: 1fr;
-    grid-template-rows: 60fr 40fr;
+    grid-template:
+      'banners' auto
+      'map' minmax(0, 1fr)
+      'panel' minmax(0, 1fr)
+      / 1fr;
   }
+}
+
+/* The map plus the controls floating over it (gear, debug overlay). */
+.map-area {
+  grid-area: map;
+  position: relative;
+  min-height: 0;
 }
 
 .map {
@@ -57,35 +86,288 @@ body {
 }
 
 .panel {
+  grid-area: panel;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.25rem;
   background: var(--surface);
-  padding: 1.5rem;
   overflow: auto;
 }
 
-.panel h1 {
-  margin: 0;
-  color: var(--accent);
+/* ---------- Speed and status ---------- */
+.speed {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
 }
 
-.readout {
-  margin-top: 1rem;
+.speed-value {
+  font-size: clamp(4rem, 11vw, 7.5rem);
+  font-weight: 800;
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+}
+
+.speed-unit {
   font-size: 1.5rem;
-  border-spacing: 1.5rem 0.25rem;
-  margin-left: -1.5rem;
-}
-
-.readout th {
   color: var(--muted);
-  font-size: 0.9rem;
-  text-align: left;
 }
 
+.hud-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+  font-size: 1rem;
+}
+
+.role-tag {
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  color: var(--bg);
+}
+
+.badge {
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.badge.warn {
+  background: var(--warning);
+  color: var(--bg);
+}
+
+/* Role colours, shared by map markers, strip dots, tags and banners. */
+.car-lead {
+  background: var(--car-lead);
+}
+
+.car-mid {
+  background: var(--car-mid);
+}
+
+.car-tail {
+  background: var(--car-tail);
+}
+
+/* ---------- Convoy strip ---------- */
+.strip {
+  --strip-colour: var(--accent);
+  padding: 1rem;
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+
+.strip.warn {
+  --strip-colour: var(--warning);
+}
+
+.strip.split {
+  --strip-colour: var(--danger);
+}
+
+.strip-track {
+  position: relative;
+  height: 40px;
+  margin: 0 18px;
+}
+
+.strip-line {
+  position: absolute;
+  top: 18px;
+  left: 0;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--strip-colour);
+}
+
+/* Tick at 1.5 km behind the lead car: the split threshold. */
+.strip-limit {
+  position: absolute;
+  top: 6px;
+  height: 28px;
+  border-left: 2px dashed var(--danger);
+}
+
+.strip-car {
+  position: absolute;
+  top: 4px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin-left: -16px;
+  border-radius: 50%;
+  border: 2px solid var(--bg);
+  color: var(--bg);
+  font-weight: 800;
+}
+
+.strip-car.you {
+  outline: 3px solid var(--text);
+  outline-offset: 2px;
+}
+
+.strip-car.stale {
+  opacity: 0.35;
+}
+
+.strip-gaps {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+  margin-top: 0.6rem;
+  font-size: 1rem;
+  white-space: nowrap;
+}
+
+.strip-gaps strong {
+  color: var(--strip-colour);
+}
+
+/* ---------- Action buttons ---------- */
+.controls {
+  margin-top: auto;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.action {
+  position: relative;
+  min-height: 72px;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  touch-action: none;
+  user-select: none;
+  overflow: hidden;
+}
+
+.action.pullover {
+  background: var(--surface-2);
+  border: 2px solid var(--warning);
+  color: var(--warning);
+}
+
+.action.resume {
+  background: var(--talking);
+  color: var(--bg);
+}
+
+/* Hold-to-confirm: the fill grows over --hold-ms while the button is held. */
+.hold-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  background: var(--warning);
+  opacity: 0.35;
+}
+
+.hold.holding .hold-fill {
+  width: 100%;
+  transition: width var(--hold-ms) linear;
+}
+
+.hold-label {
+  position: relative;
+}
+
+/* ---------- Banners ---------- */
+.banners {
+  grid-area: banners;
+  display: grid;
+}
+
+.banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.4rem 1.5rem;
+  padding: 0.9rem 1rem;
+  font-size: clamp(1.1rem, 2.6vw, 1.6rem);
+  text-align: center;
+  color: var(--bg);
+}
+
+.banner.danger {
+  background: var(--danger);
+  color: var(--text);
+}
+
+.banner.pullover {
+  border-top: 2px solid var(--bg);
+}
+
+/* ---------- Demo controls (gear), bottom-left over the map ---------- */
+.demo {
+  position: absolute;
+  left: 0.75rem;
+  bottom: 1.75rem;
+  z-index: 1050;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.demo-toggle {
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--muted);
+  border-radius: 50%;
+  background: var(--surface-2);
+  font-size: 1.3rem;
+}
+
+.demo-panel {
+  display: grid;
+  gap: 0.7rem;
+  width: 240px;
+  padding: 0.9rem;
+  border: 1px solid var(--muted);
+  border-radius: 10px;
+  background: var(--surface-2);
+  font-size: 0.9rem;
+}
+
+.demo-panel input[type='range'] {
+  display: block;
+  width: 100%;
+  margin-top: 0.3rem;
+}
+
+.demo-row {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.demo-row a.current {
+  color: var(--text);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.demo-panel button {
+  padding: 0.5rem;
+  border: 1px solid var(--danger);
+  border-radius: 6px;
+  background: none;
+  color: var(--danger);
+}
+
+/* ---------- Map: tiles, route line, car markers ---------- */
 /* OSM tiles are light: grey them out and invert them into a quiet dark base map. */
 .dark-tiles {
   filter: grayscale(1) invert(1) brightness(0.8) contrast(1.1);
 }
 
-/* Map: the route line and the car markers (Leaflet divIcons). */
 .route-line {
   stroke: var(--accent);
   stroke-width: 5;
@@ -102,37 +384,16 @@ body {
   font-size: 14px;
 }
 
-.car-lead {
-  background: var(--accent);
-}
-
-.car-mid {
-  background: var(--text);
-}
-
-.car-tail {
-  background: #b794f6;
-}
-
 .car.you {
   outline: 3px solid var(--text);
   outline-offset: 3px;
 }
 
-.readout tr.stale {
-  opacity: 0.45;
-}
-
-.readout .tag {
-  font-size: 0.9rem;
-  color: var(--warning);
-}
-
-/* Debug overlay (?debug=1): small, bottom-left over the map. */
+/* ---------- Debug overlay (?debug=1), top-left over the map ---------- */
 .debug {
-  position: fixed;
+  position: absolute;
   left: 0.75rem;
-  bottom: 1.75rem;
+  top: 0.75rem;
   z-index: 1000;
   padding: 0.6rem 0.8rem;
   background: rgb(11 13 16 / 0.85);
