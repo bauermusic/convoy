@@ -30,7 +30,7 @@ Total active time so far: 0h
 
 ## To do at the end (agreed to defer)
 
-- **Mid can pass the lead.** Cars don't react to the car ahead, so when a car pulls over (or its device sleeps and it freezes), the cars behind drive past it. Proposed fix: a tested car-following limit (stay at least ~50 m behind the car ahead and match its speed), ignoring cars that lost contact. Until then it is listed under known limitations in the README.
+- Done: car-following fix (mid no longer passes the lead). Verified locally: lead pulls over → mid stops 50 m behind, tail 50 m behind mid; RESUME → they drive on in order. **Not deployed yet.**
 
 ## Known issues / notes for the next session
 

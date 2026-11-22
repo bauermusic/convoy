@@ -122,11 +122,11 @@ Every shortcut, mock, deliberate omission and non-obvious choice, with what two 
 - Why: hold-to-confirm prevents accidental taps while driving. Alerts older than 10 s are ignored on load, so a late joiner doesn't see old news.
 - With two weeks: acknowledgements ("seen by LEAD"), a persistent "stopped" marker on the map, and push notifications.
 
-### Known issue: cars can pass a stopped or frozen car
-- Context: a convoy keeps its order; the simulation is one-dimensional.
-- Decision: not fixed yet. Cars don't react to the car ahead, so when one pulls over, or its phone sleeps and its car freezes, the cars behind drive past it.
-- Why: found late in testing and deferred to the end of the project. Proposed fix: a tested car-following limit (stay ~50 m behind the car ahead and match its speed), ignoring cars that lost contact so one sleeping phone can't stop the convoy.
-- With two weeks: real positions from GPS, where this can't happen.
+### Car-following: no overtaking, queue behind a stopped car
+- Context: a convoy keeps its order, but the first simulation let cars drive "through" each other (found in device testing: mid passed a lead that had pulled over).
+- Decision: `keepBehind()` (pure, tested) runs after each step: a car never gets closer than 50 m to the nearest car ahead that is in contact, and at that distance it matches that car's speed. It never moves a car backwards. Cars are stepped front to back. A car that lost contact (e.g. a sleeping phone) is ignored, so the others pass it rather than the whole convoy stopping behind a frozen marker.
+- Why: when the lead pulls over, mid and tail now queue 50 m apart and wait, and drive on in order after RESUME. After a stop the convoy stays close together and spreads out only gradually; Reset restores the 300 m spacing.
+- With two weeks: real GPS positions, where cars pass or don't on their own; the app would only warn.
 
 ## Push-to-talk
 

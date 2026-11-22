@@ -45,3 +45,17 @@ export function stepCar(car: CarState, dt: number, p: SimParams): CarState {
   // Use the average of the old and new speed, so the distance matches the speeds shown.
   return { ...car, v, s: car.s + ((car.v + v) / 2) * dt }
 }
+
+export const MIN_FOLLOW_GAP = 50 // m; a car never gets closer than this to the car ahead
+
+/**
+ * Car-following: after a step, keep a car behind the car ahead (convoys don't overtake).
+ * If the step would bring it closer than MIN_FOLLOW_GAP, it stops at that distance and matches
+ * the speed of the car ahead, so a pull-over makes the cars behind queue and wait.
+ * It never moves a car backwards: if it is already too close, it holds its position.
+ * `ahead` is null when there is no car ahead in contact (lead, or the car ahead was lost).
+ */
+export function keepBehind(prev: CarState, next: CarState, ahead: { s: number; v: number } | null): CarState {
+  if (!ahead || next.s <= ahead.s - MIN_FOLLOW_GAP) return next
+  return { ...next, s: Math.max(prev.s, ahead.s - MIN_FOLLOW_GAP), v: Math.min(next.v, ahead.v) }
+}

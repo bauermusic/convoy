@@ -16,7 +16,7 @@ A single tab also works: the tab that is "host" drives every empty seat as a sim
 | Feature | How |
 |---|---|
 | Convoy split alert | Click the gear (bottom-left of the map), drag **Tail lag** to 0.2. After about a minute the lead–tail gap passes 1.5 km and every tab shows **CONVOY SPLIT — SLOW DOWN AND WAIT** (with the Hebrew line from the brief). Drag the slider back to 1.0: the lead and mid "wait", and the alert clears below 1.2 km. |
-| Pull over / breakdown | **Hold** the PULL OVER button for 0.6 s. Every tab shows "LEAD: PULLING OVER" and your car stops. Tap RESUME to drive on. |
+| Pull over / breakdown | **Hold** the PULL OVER button for 0.6 s. Every tab shows "LEAD: PULLING OVER", your car stops, and the cars behind queue up 50 m apart. Tap RESUME to drive on. |
 | Push-to-talk | Tap the page once on each device (browsers block sound until you do). **Hold** the talk button (or the Space bar on desktop) and speak, up to 8 s. Others see "LEAD TALKING" and a green ring on your car and hear a tone; when you let go, your message plays on their devices. A second talker is refused while the channel is busy. |
 | Lost contact | Add `&debug=1` to the URL and press **Simulate network drop**: after 3 s the other cars dim and show "lost contact"; the host takes over your car until you reconnect. |
 | Look around the map | Drag the map: following stops and a re-centre button appears. It also re-centres by itself after 15 s. Zooming keeps your car in the middle. |
@@ -135,7 +135,7 @@ About 1,550 lines of TypeScript excluding tests and route data.
 | 7 | Waveform indicator | **Done** | Talker: live microphone level. Receivers: real level of the message as it plays; while someone is still talking (their audio hasn't arrived yet), a synthetic animation. |
 | 8 | Audio transfer | **Done (recorded, not live)** | Tier 2 of 3: the talker's voice is recorded (up to 8 s) and played on the other devices **after they let go**, like a voice message. Tested iPhone Safari → Mac Chrome. Live streaming (WebRTC, tier 3) was not built. |
 | 9 | Split alert beyond threshold | **Done** | Along-road lead–tail gap, on above 1.5 km, off below 1.2 km (tested). English message plus the Hebrew line from the brief. |
-| 10 | Quick action "pull over / breakdown" | **Done** | Hold 0.6 s to confirm; broadcast banner on all tabs for 8 s; RESUME. Known issue: the cars behind drive past a stopped car (see limitations). |
+| 10 | Quick action "pull over / breakdown" | **Done** | Hold 0.6 s to confirm; broadcast banner on all tabs for 8 s; the cars behind queue 50 m apart and wait; RESUME drives on. |
 | 11 | Dark, high-contrast, landscape HUD | **Done** | Landscape-first, compact phone-landscape layout, usable in portrait. Primary text contrast 14.8–17.8:1; secondary text about 5.3:1. No formal accessibility audit. |
 | 12 | Live demo + GitHub + README | **Done** | https://convoy-hud-poc.web.app · https://github.com/bauermusic/convoy |
 
@@ -157,12 +157,12 @@ Each has a short entry in [DECISIONS.md](DECISIONS.md) (context, decision, why, 
 ## Known limitations
 
 - **Voice is delayed, not live.** A message plays after the talker releases the button, and is capped at 8 s. Tested iPhone Safari → Mac Chrome only; the Mac used for testing has no microphone, so Chrome → iPhone wasn't tested. If a browser can't decode the other's format (WebM/Opus vs MP4/AAC), it skips the message and logs a warning.
-- **Cars can pass each other.** Cars don't react to the car ahead, so when a car pulls over, or its phone sleeps and the car freezes, the cars behind drive past it. The order then changes and the strip shows it.
+- **A frozen car is passed.** Cars keep 50 m behind the car ahead and queue behind a stopped one, but a car that lost contact (e.g. its phone went to sleep) is ignored, so the others drive past it rather than stopping behind a frozen marker.
 - **Phones that sleep stop driving.** iOS pauses the page when the screen locks or another app is opened; that car shows "lost contact". The screen is kept awake (Wake Lock) where supported.
 - **Clients are trusted.** Any signed-in user can write any car's telemetry (the host must write NPC cars). There is no per-session membership or rate limiting.
 - **Stuck roles.** If a tab's disconnect is never detected, its seat stays taken. Reset doesn't release seats; deleting `sessions/<sid>/roles/<role>` does.
 - **Single session at a time per URL**, a fixed route, and simulated positions only (no GPS).
-- **Tests cover domain logic only**: route, simulation, dead reckoning, convoy gaps/split, floor control (25 tests). Realtime behaviour was verified by hand in two tabs and on a phone; there are no end-to-end tests.
+- **Tests cover domain logic only**: route, simulation and car-following, dead reckoning, convoy gaps/split, floor control (29 tests). Realtime behaviour was verified by hand in two tabs and on a phone; there are no end-to-end tests.
 
 ## With two weeks instead of four hours
 
@@ -170,7 +170,7 @@ Each has a short entry in [DECISIONS.md](DECISIONS.md) (context, decision, why, 
 2. **Server-authoritative state:** positions come from devices (GPS) and are validated, smoothed and map-matched on a server. Clients can't spoof other cars. The simulation moves server-side for demos.
 3. **Network drops in the field:** buffer the local car's samples while offline and replay them on reconnect, show how stale every car is, and adapt the publish rate to the connection.
 4. **Security and scale:** per-convoy membership and invites, rules so that only the holder (or the server) writes a car, rate limits, many concurrent convoys, and cleanup of old sessions and anonymous users.
-5. **Convoy logic:** car-following so cars never pass each other, time-gap (seconds) as well as distance alerts, configurable thresholds per convoy, and acknowledgements on alerts.
+5. **Convoy logic:** time-gap (seconds) as well as distance alerts, configurable thresholds per convoy, and acknowledgements on alerts ("seen by LEAD").
 6. **Mobile and in-car:** background behaviour and battery, a native shell or CarPlay / Android Auto integration, offline map tiles and a proper dark vector map style.
 7. **Quality:** an accessibility audit, end-to-end tests with two browsers (e.g. Playwright), and monitoring.
 

@@ -13,7 +13,7 @@ import { ROUTE } from '../data/route'
 import { WAIT_FACTOR, gaps, splitState, type Gaps } from '../domain/convoy'
 import { estimate } from '../domain/deadReckoning'
 import { turnAhead } from '../domain/route'
-import { PHASE, START_S, initialCar, stepCar } from '../domain/sim'
+import { PHASE, START_S, initialCar, keepBehind, stepCar } from '../domain/sim'
 import { ROLES, type CarSample, type CarState, type CarStatus, type Role } from '../domain/types'
 import { pushAlert } from '../firebase/alerts'
 import { serverNow } from '../firebase/client'
@@ -98,10 +98,25 @@ export function useConvoy(sid: string, session: Session): Convoy {
 
       // 2. Step and publish them. The tail obeys the lag slider; while the convoy is split,
       //    the simulated drivers ahead of the tail slow down to wait, as the alert tells them to.
-      for (const [r, car] of driven) {
+      //    Front to back, so each car sees the car ahead's new position and never passes it.
+      const samples = remote
+      const carAhead = (r: Role) => {
+        for (const a of ROLES.slice(0, ROLES.indexOf(r)).reverse()) {
+          const own = driven.get(a)
+          if (own) return own
+          const sample = samples[a]
+          const est = sample && estimate(sample, now)
+          if (sample && est && !est.stale) return { s: est.s, v: sample.v }
+        }
+        return null // lead, or nobody ahead in contact: a car that lost contact doesn't block the road
+      }
+      for (const r of ROLES) {
+        const car = driven.get(r)
+        if (!car) continue
         const lagFactor = r === 'tail' ? meta.tailLag : split ? WAIT_FACTOR : 1
         const status = r === role ? ownStatus.current : 'driving'
-        const next = stepCar({ ...car, status }, dt, { t: now / 1000, turn: turnAhead(ROUTE, car.s), lagFactor, phase: PHASE[r] })
+        const stepped = stepCar({ ...car, status }, dt, { t: now / 1000, turn: turnAhead(ROUTE, car.s), lagFactor, phase: PHASE[r] })
+        const next = keepBehind(car, stepped, carAhead(r))
         driven.set(r, next)
         maybePublish(sid, r, next, r !== role, nowLocal)
       }
